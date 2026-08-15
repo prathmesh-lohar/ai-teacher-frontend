@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --color-primary: #00769F;
+  --color-primary-soft: rgba(0, 118, 159, 0.08);
+  --color-accent: #6C63FF;
+  --color-accent-end: #8E7CFF;
+  --color-background: #F8FAFC;
+  --color-card: #FFFFFF;
+  --color-text-heading: #1F2937;
+  --color-text-sub: #6B7280;
+  
+  --radius-xl: 12px;
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+  
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.03);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.05);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-text-heading font-sans selection:bg-primary/20;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: var(--shadow-glass);
+  }
+  
+  .sidebar-item {
+    @apply transition-all duration-200 rounded-xl px-4 py-2.5 flex items-center gap-3 text-text-sub font-medium cursor-pointer;
+  }
+  
+  .sidebar-item.active {
+    @apply bg-primary/10 text-primary;
+  }
+  
+  .hero-gradient {
+    background: linear-gradient(135deg, #6C63FF 0%, #8E7CFF 100%);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
