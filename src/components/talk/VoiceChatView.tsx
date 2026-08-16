@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mic, 
@@ -27,10 +27,11 @@ import {
   BookOpen,
   Volume1,
   Pause,
-  Play
+  Play,
+  X
 } from 'lucide-react';
-import { ChatMode } from './TalkModeSelector';
-import { useVoiceSession } from '@/hooks/useVoiceSession';
+import { useAuth } from '@/context/AuthContext';
+import { useVoiceSession, UserSessionContext } from '@/hooks/useVoiceSession';
 import { TTS_PROVIDERS, TTSProviderId, NATIVE_LANGUAGES, NativeLanguageOption } from '@/types/voice';
 import { speechPlayer } from '@/audio/speechPlayer';
 
@@ -41,12 +42,15 @@ interface VoiceChatViewProps {
 }
 
 export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewProps) {
+  const { user } = useAuth();
   const [isSpeakerOff, setIsSpeakerOff] = useState(false);
   const [showCaptions, setShowCaptions] = useState(true);
   const [callDuration, setCallDuration] = useState(0);
   const [switchToast, setSwitchToast] = useState<string | null>(null);
   const [showEnglishRule, setShowEnglishRule] = useState(false);
   const [playingSpeechKey, setPlayingSpeechKey] = useState<string | null>(null);
+  const [dismissedMistakeKey, setDismissedMistakeKey] = useState<string | null>(null);
+  const captionsRef = useRef<HTMLDivElement | null>(null);
 
   // Initialize initial provider and voice from localStorage if available
   const [savedProvider] = useState<TTSProviderId>(() => {
@@ -70,8 +74,19 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
       const l = localStorage.getItem('talk_native_language');
       if (l) return l;
     }
-    return 'Hindi';
+    return user?.profile?.native_language || 'Hindi';
   });
+
+  const userContext: UserSessionContext | undefined = user
+    ? {
+        name: user.first_name || user.username || 'Student',
+        english_level: user.profile?.english_level || 'B1',
+        native_language: user.profile?.native_language || savedNativeLang,
+        occupation: user.profile?.occupation || 'Professional',
+        interests: user.profile?.interests || ['technology', 'general conversations'],
+        goals: user.profile?.goals || ['improve spoken English', 'speak with natural fluency'],
+      }
+    : undefined;
 
   const {
     state,
@@ -102,8 +117,15 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
     autoTurnEnabled: true,
     initialTtsProvider: savedProvider,
     initialTtsVoice: savedVoice,
-    initialNativeLanguage: savedNativeLang,
+    initialNativeLanguage: user?.profile?.native_language || savedNativeLang,
+    userContext,
   });
+
+  const activeMistake =
+    latestMistakes.length > 0 && latestMistakes[0].original_text !== dismissedMistakeKey
+      ? latestMistakes[0]
+      : null;
+  const hasActiveMistake = Boolean(activeMistake);
 
   useEffect(() => {
     if (isPaused) return;
@@ -211,7 +233,7 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
   return (
     <div className="h-full flex flex-col bg-slate-900 rounded-[2rem] text-white overflow-hidden relative border border-slate-800 shadow-2xl">
       {/* Voice Call Top Bar */}
-      <div className="px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-20">
+      <div className="px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-20 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
             <Sparkles size={20} className={isAiSpeaking ? 'animate-pulse' : ''} />
@@ -316,7 +338,7 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
       </div>
 
       {/* Main Stage: Animated Voice Orb & Live Waveform */}
-      <div className="flex-1 flex flex-col items-center justify-center relative p-6 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 relative overflow-y-auto custom-scrollbar p-3 sm:p-5 flex flex-col items-center">
         <div className="absolute inset-0 bg-radial from-blue-900/20 via-transparent to-transparent pointer-events-none" />
 
         {/* Real-time Voice / Language Switch Toast Pill */}
@@ -326,7 +348,7 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
               initial={{ opacity: 0, y: -20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              className="absolute top-4 z-30 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 backdrop-blur-md shadow-lg shadow-emerald-500/10"
+              className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-4 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 backdrop-blur-md shadow-lg shadow-emerald-500/10 whitespace-nowrap"
             >
               <Check size={14} className="text-emerald-400" />
               <span>{switchToast}</span>
@@ -334,364 +356,382 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
           )}
         </AnimatePresence>
 
-        {/* Active Voice, Native Language & Pause/Hands-Free Status Info Bar */}
-        <div className="mb-3 px-4 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] text-slate-300 flex items-center flex-wrap justify-center gap-2.5 backdrop-blur-sm shadow-md">
-          <div className="flex items-center gap-1.5">
-            <span>{currentVoiceConfig.flag}</span>
-            <span className="font-semibold text-slate-100">{currentVoiceConfig.name}</span>
-          </div>
-          <span className="text-slate-500">•</span>
-          <div className="flex items-center gap-1.5 text-indigo-300">
-            <span>{currentNativeLangConfig.flag}</span>
-            <span className="font-semibold">Corrections in {currentNativeLangConfig.name}</span>
-          </div>
-          <span className="text-slate-500">•</span>
-          {isPaused ? (
-            <div className="flex items-center gap-1 text-amber-400 font-extrabold text-[10px] uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse mr-0.5" />
-              <span>Voice Talk Paused</span>
+        <div className="min-h-full w-full flex flex-col items-center justify-between py-1">
+          {/* Active Voice, Native Language & Pause/Hands-Free Status Info Bar */}
+          <div className="mb-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-[10px] sm:text-[11px] text-slate-300 flex items-center flex-wrap justify-center gap-2 backdrop-blur-sm shadow-md shrink-0">
+            <div className="flex items-center gap-1">
+              <span>{currentVoiceConfig.flag}</span>
+              <span className="font-semibold text-slate-100">{currentVoiceConfig.name}</span>
             </div>
-          ) : (
-            <div className="flex items-center gap-1 text-emerald-400 font-extrabold text-[10px] uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping mr-0.5" />
-              <span>Hands-Free Auto Turn & Barge-In Active</span>
+            <span className="text-slate-500">•</span>
+            <div className="flex items-center gap-1 text-indigo-300">
+              <span>{currentNativeLangConfig.flag}</span>
+              <span className="font-semibold">Corrections in {currentNativeLangConfig.name}</span>
             </div>
-          )}
-        </div>
-
-        {/* Realtime Linguistic Feedback Badge (Native Language & English) */}
-        <AnimatePresence>
-          {latestMistakes.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.98 }}
-              className="mb-4 max-w-xl w-full bg-gradient-to-br from-amber-500/15 via-slate-850 to-indigo-950/40 border border-amber-500/40 p-4 rounded-2xl shadow-xl backdrop-blur-xl relative overflow-hidden"
-            >
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
-                    <AlertCircle size={14} />
-                  </div>
-                  <span className="text-xs font-bold text-amber-300 tracking-wide uppercase">
-                    Live Grammar Insight ({latestMistakes[0].category || 'Grammar'})
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 font-semibold">
-                    {currentNativeLangConfig.flag} {currentNativeLangConfig.name} Mode
-                  </span>
-                </div>
-                <button
-                  onClick={() =>
-                    handlePlaySpeech(
-                      latestMistakes[0].corrected_text,
-                      'english-correction',
-                      'English',
-                      'en-US'
-                    )
-                  }
-                  title="Listen to corrected English pronunciation"
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
-                    playingSpeechKey === 'english-correction'
-                      ? 'bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-500/30'
-                      : 'bg-slate-800 hover:bg-slate-700 text-blue-300 border-slate-700 hover:border-slate-600'
-                  }`}
-                >
-                  {playingSpeechKey === 'english-correction' ? (
-                    <>
-                      <VolumeX size={12} className="text-white" />
-                      <span>Stop English</span>
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 size={12} />
-                      <span>Hear English</span>
-                    </>
-                  )}
-                </button>
+            <span className="text-slate-500">•</span>
+            {isPaused ? (
+              <div className="flex items-center gap-1 text-amber-400 font-extrabold text-[9px] uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse mr-0.5" />
+                <span>Voice Talk Paused</span>
               </div>
-
-              {/* Mistake Comparison */}
-              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-xs mb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <span className="text-slate-400 mr-2 text-[11px]">You said:</span>
-                  <span className="line-through text-red-400/90 font-medium">"{latestMistakes[0].original_text}"</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                  <span className="text-slate-400 font-normal text-[11px]">Say:</span>
-                  <span className="bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-                    "{latestMistakes[0].corrected_text}"
-                  </span>
-                </div>
+            ) : (
+              <div className="flex items-center gap-1 text-emerald-400 font-extrabold text-[9px] uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping mr-0.5" />
+                <span>Hands-Free Auto Turn & Barge-In Active</span>
               </div>
+            )}
+          </div>
 
-              {/* Native Language Explanation Pill with Native Listen Option */}
-              {latestMistakes[0].native_explanation ? (
-                <div className="p-3 rounded-xl bg-indigo-950/70 border border-indigo-500/30 text-xs shadow-inner">
-                  <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
-                    <div className="flex items-center gap-1.5 text-indigo-300 font-bold text-[11px]">
-                      <span className="text-sm">{currentNativeLangConfig.flag}</span>
-                      <span>{currentNativeLangConfig.name} Explanation:</span>
+          {/* Realtime Linguistic Feedback Badge (Native Language & English) */}
+          <AnimatePresence>
+            {activeMistake && (
+              <motion.div
+                layout
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="mb-2 w-full bg-gradient-to-br from-amber-500/15 via-slate-850 to-indigo-950/40 border border-amber-500/40 p-3 sm:p-3.5 rounded-2xl shadow-xl backdrop-blur-xl relative overflow-hidden shrink-0 z-10"
+              >
+                <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="w-5 h-5 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
+                      <AlertCircle size={12} />
                     </div>
+                    <span className="text-[11px] font-bold text-amber-300 tracking-wide uppercase">
+                      Live Grammar Insight ({activeMistake.category || 'Grammar'})
+                    </span>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 font-semibold">
+                      {currentNativeLangConfig.flag} {currentNativeLangConfig.name}
+                    </span>
+                  </div>
 
-                    {/* Dedicated Native Audio Listen Button (e.g. Marathi / Hindi) */}
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() =>
                         handlePlaySpeech(
-                          latestMistakes[0].native_explanation!,
-                          'native-explanation',
-                          currentNativeLangConfig.name,
-                          currentNativeLangConfig.langCode
+                          activeMistake.corrected_text,
+                          'english-correction',
+                          'English',
+                          'en-US'
                         )
                       }
-                      title={`Listen to explanation in ${currentNativeLangConfig.name}`}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all shadow-sm ${
-                        playingSpeechKey === 'native-explanation'
-                          ? 'bg-indigo-600 text-white shadow-indigo-500/40 border border-indigo-400 ring-2 ring-indigo-400/30'
-                          : 'bg-indigo-900/90 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/40 hover:border-indigo-400'
+                      title="Listen to corrected English pronunciation"
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all border shrink-0 ${
+                        playingSpeechKey === 'english-correction'
+                          ? 'bg-blue-600 text-white border-blue-400 shadow-sm'
+                          : 'bg-slate-800 hover:bg-slate-700 text-blue-300 border-slate-700 hover:border-slate-600'
                       }`}
                     >
-                      {playingSpeechKey === 'native-explanation' ? (
+                      {playingSpeechKey === 'english-correction' ? (
                         <>
-                          <VolumeX size={12} className="text-white" />
-                          <span>Stop Native</span>
-                          <span className="flex items-end gap-0.5 ml-1 h-3">
-                            <span className="w-1 h-full bg-white rounded-full animate-pulse" />
-                            <span className="w-1 h-2 bg-white rounded-full animate-pulse [animation-delay:150ms]" />
-                            <span className="w-1 h-full bg-white rounded-full animate-pulse [animation-delay:300ms]" />
-                          </span>
+                          <VolumeX size={11} className="text-white" />
+                          <span>Stop</span>
                         </>
                       ) : (
                         <>
-                          <Volume2 size={12} className="text-indigo-300" />
-                          <span>{currentNativeLangConfig.listenLabel || `Listen in ${currentNativeLangConfig.name}`}</span>
+                          <Volume2 size={11} />
+                          <span>Hear English</span>
                         </>
                       )}
                     </button>
+
+                    <button
+                      onClick={() => setDismissedMistakeKey(activeMistake.original_text)}
+                      title="Dismiss insight"
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
                   </div>
-                  <p className="text-indigo-100 font-medium leading-relaxed">
-                    {latestMistakes[0].native_explanation}
-                  </p>
                 </div>
-              ) : (
-                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-200 flex items-center justify-between gap-2">
-                  <div>
-                    <span className="text-amber-400 font-semibold mr-1">Rule:</span>
-                    {latestMistakes[0].explanation}
+
+                {/* Mistake Comparison */}
+                <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800 text-[11px] mb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-slate-400 text-[10px]">You said:</span>
+                    <span className="line-through text-red-400/90 font-medium">"{activeMistake.original_text}"</span>
                   </div>
-                  <button
-                    onClick={() =>
-                      handlePlaySpeech(
-                        latestMistakes[0].explanation,
-                        'english-rule',
-                        'English',
-                        'en-US'
-                      )
-                    }
-                    title="Listen to grammar rule"
-                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-blue-300 border border-slate-700"
-                  >
-                    <Volume2 size={12} />
-                    <span>Listen</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Toggle to view English grammar rule */}
-              {latestMistakes[0].native_explanation && (
-                <div className="mt-2 flex items-center justify-between">
-                  <button
-                    onClick={() => setShowEnglishRule(!showEnglishRule)}
-                    className="text-[11px] text-slate-400 hover:text-slate-200 underline cursor-pointer flex items-center gap-1"
-                  >
-                    <BookOpen size={11} />
-                    <span>{showEnglishRule ? 'Hide English Grammar Rule' : 'Show English Grammar Rule'}</span>
-                  </button>
-                </div>
-              )}
-
-              {showEnglishRule && latestMistakes[0].explanation && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="mt-2 p-2.5 rounded-lg bg-slate-900 text-[11px] text-slate-300 border border-slate-800 flex items-start justify-between gap-2"
-                >
-                  <div className="leading-relaxed">
-                    <span className="text-amber-400 font-semibold mr-1">English Rule:</span>
-                    {latestMistakes[0].explanation}
+                  <div className="flex items-center gap-1 text-emerald-400 font-bold flex-wrap">
+                    <span className="text-slate-400 font-normal text-[10px]">Say:</span>
+                    <span className="bg-emerald-500/10 px-1.5 py-0.5 rounded-lg border border-emerald-500/20">
+                      "{activeMistake.corrected_text}"
+                    </span>
                   </div>
-                  <button
-                    onClick={() =>
-                      handlePlaySpeech(
-                        latestMistakes[0].explanation,
-                        'english-rule',
-                        'English',
-                        'en-US'
-                      )
-                    }
-                    title="Listen to English rule"
-                    className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold border transition-all ${
-                      playingSpeechKey === 'english-rule'
-                        ? 'bg-blue-600 text-white border-blue-400 shadow-sm'
-                        : 'bg-slate-800 hover:bg-slate-700 text-blue-300 border-slate-700'
-                    }`}
-                  >
-                    {playingSpeechKey === 'english-rule' ? <VolumeX size={11} /> : <Volume2 size={11} />}
-                    <span>{playingSpeechKey === 'english-rule' ? 'Stop' : 'Listen'}</span>
-                  </button>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                </div>
 
-        {/* Dynamic Voice Orb */}
-        <div className="relative flex flex-col items-center justify-center my-auto">
-          <div className="relative flex items-center justify-center">
-            {/* AI Speaking Waves */}
-            {isAiSpeaking && !isPaused && (
-              <>
-                <motion.div 
-                  animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0.6, 0.3] }}
-                  transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-                  className="absolute w-64 h-64 rounded-full bg-blue-500/20 border border-blue-400/30"
-                />
-                <motion.div 
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.8, 0.4] }}
-                  transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-                  className="absolute w-48 h-48 rounded-full bg-indigo-500/30 border border-indigo-400/40"
-                />
-              </>
-            )}
+                {/* Native Language Explanation Pill with Native Listen Option */}
+                {activeMistake.native_explanation ? (
+                  <div className="p-2.5 rounded-xl bg-indigo-950/70 border border-indigo-500/30 text-xs shadow-inner">
+                    <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                      <div className="flex items-center gap-1 text-indigo-300 font-bold text-[10px]">
+                        <span>{currentNativeLangConfig.flag}</span>
+                        <span>{currentNativeLangConfig.name} Explanation:</span>
+                      </div>
 
-            {/* User Speaking Waves */}
-            {isUserSpeaking && !isPaused && (
-              <motion.div 
-                animate={{ scale: [1, 1 + (volumeLevel / 100) * 0.4, 1], opacity: [0.4, 0.8, 0.4] }}
-                transition={{ repeat: Infinity, duration: 0.8, ease: 'easeInOut' }}
-                className="absolute w-56 h-56 rounded-full bg-emerald-500/20 border border-emerald-400/30"
-              />
-            )}
-
-            {/* Central Orb Avatar */}
-            <div className={`relative z-10 w-36 h-36 rounded-full bg-gradient-to-tr ${
-              isPaused
-                ? 'from-amber-600 via-yellow-600 to-amber-700 shadow-amber-500/30 ring-amber-500/40'
-                : isAiSpeaking
-                ? 'from-blue-600 via-indigo-600 to-sky-400 shadow-blue-500/40'
-                : isUserSpeaking
-                ? 'from-emerald-500 via-teal-600 to-cyan-400 shadow-emerald-500/40'
-                : isAiThinking
-                ? 'from-amber-500 via-orange-600 to-yellow-400 animate-pulse'
-                : isInterrupted
-                ? 'from-purple-500 via-indigo-600 to-pink-400'
-                : 'from-emerald-600 to-teal-700 ring-emerald-400/50'
-            } shadow-2xl flex flex-col items-center justify-center p-2 ring-4 ring-slate-800 transition-all duration-300`}>
-              <div className="w-20 h-20 rounded-full bg-slate-950/40 backdrop-blur-sm flex items-center justify-center text-white mb-1">
-                {isPaused ? (
-                  <Pause size={34} className="text-amber-200" />
+                      <button
+                        onClick={() =>
+                          handlePlaySpeech(
+                            activeMistake.native_explanation!,
+                            'native-explanation',
+                            currentNativeLangConfig.name,
+                            currentNativeLangConfig.langCode
+                          )
+                        }
+                        title={`Listen to explanation in ${currentNativeLangConfig.name}`}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all shadow-sm ${
+                          playingSpeechKey === 'native-explanation'
+                            ? 'bg-indigo-600 text-white shadow-indigo-500/40 border border-indigo-400'
+                            : 'bg-indigo-900/90 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/40'
+                        }`}
+                      >
+                        {playingSpeechKey === 'native-explanation' ? (
+                          <>
+                            <VolumeX size={11} className="text-white" />
+                            <span>Stop Native</span>
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 size={11} className="text-indigo-300" />
+                            <span>{currentNativeLangConfig.listenLabel || `Listen in ${currentNativeLangConfig.name}`}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-indigo-100 font-medium text-[11px] leading-relaxed">
+                      {activeMistake.native_explanation}
+                    </p>
+                  </div>
                 ) : (
-                  <Sparkles size={36} className={isAiSpeaking ? 'animate-bounce' : isUserSpeaking ? 'animate-pulse' : ''} />
+                  <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-200 flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-amber-400 font-semibold mr-1">Rule:</span>
+                      {activeMistake.explanation}
+                    </div>
+                    <button
+                      onClick={() =>
+                        handlePlaySpeech(
+                          activeMistake.explanation,
+                          'english-rule',
+                          'English',
+                          'en-US'
+                        )
+                      }
+                      title="Listen to grammar rule"
+                      className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-blue-300 border border-slate-700"
+                    >
+                      <Volume2 size={11} />
+                      <span>Listen</span>
+                    </button>
+                  </div>
                 )}
-              </div>
-              <span className="text-[10px] font-extrabold tracking-wider uppercase text-white/90 text-center px-1">
-                {isPaused
-                  ? 'Talk Paused'
-                  : isAiSpeaking
-                  ? 'Teacher Speaking'
-                  : isUserSpeaking
-                  ? 'You Speaking'
-                  : isAiThinking
-                  ? 'AI Thinking...'
-                  : isInterrupted
-                  ? 'Interrupted'
-                  : 'AI Listening'}
-              </span>
-            </div>
-          </div>
 
-          {/* Paused Action Card */}
-          <AnimatePresence>
-            {isPaused && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="mt-4 flex items-center gap-3 bg-amber-950/60 border border-amber-500/40 px-4 py-2.5 rounded-2xl backdrop-blur-md shadow-xl"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                  <span className="text-xs font-semibold text-amber-200">Voice talk is paused. Take your time!</span>
-                </div>
-                <button
-                  onClick={handleTogglePause}
-                  className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
-                >
-                  <Play size={13} className="fill-slate-950" />
-                  <span>Resume</span>
-                </button>
+                {/* Toggle to view English grammar rule */}
+                {activeMistake.native_explanation && (
+                  <div className="mt-1.5 flex items-center justify-between">
+                    <button
+                      onClick={() => setShowEnglishRule(!showEnglishRule)}
+                      className="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer flex items-center gap-1"
+                    >
+                      <BookOpen size={10} />
+                      <span>{showEnglishRule ? 'Hide English Grammar Rule' : 'Show English Grammar Rule'}</span>
+                    </button>
+                  </div>
+                )}
+
+                {showEnglishRule && activeMistake.explanation && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-1.5 p-2 rounded-lg bg-slate-900 text-[10px] text-slate-300 border border-slate-800 flex items-start justify-between gap-2"
+                  >
+                    <div className="leading-relaxed">
+                      <span className="text-amber-400 font-semibold mr-1">English Rule:</span>
+                      {activeMistake.explanation}
+                    </div>
+                    <button
+                      onClick={() =>
+                        handlePlaySpeech(
+                          activeMistake.explanation,
+                          'english-rule',
+                          'English',
+                          'en-US'
+                        )
+                      }
+                      title="Listen to English rule"
+                      className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border transition-all ${
+                        playingSpeechKey === 'english-rule'
+                          ? 'bg-blue-600 text-white border-blue-400 shadow-sm'
+                          : 'bg-slate-800 hover:bg-slate-700 text-blue-300 border-slate-700'
+                      }`}
+                    >
+                      {playingSpeechKey === 'english-rule' ? <VolumeX size={10} /> : <Volume2 size={10} />}
+                      <span>{playingSpeechKey === 'english-rule' ? 'Stop' : 'Listen'}</span>
+                    </button>
+                  </motion.div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
 
-        {/* Live Soundwave Bars */}
-        <div className="flex items-center gap-1.5 h-12 my-6">
-          {[...Array(16)].map((_, i) => (
-            <motion.div
-              key={i}
-              animate={{
-                height: isPaused
-                  ? 4
-                  : isAiSpeaking
-                  ? [8, Math.floor(Math.random() * 36) + 12, 8]
-                  : isUserSpeaking
-                  ? [8, Math.min(44, Math.floor((volumeLevel / 100) * 44) + (i % 3) * 6), 8]
-                  : [4, 8, 4],
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 0.35 + (i % 5) * 0.08,
-                ease: 'easeInOut',
-              }}
-              className={`w-1.5 rounded-full ${
-                isPaused
-                  ? 'bg-slate-700'
-                  : isAiSpeaking
-                  ? 'bg-blue-400'
-                  : isUserSpeaking
-                  ? 'bg-emerald-400'
-                  : 'bg-slate-700'
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Live Captions Subtitle Box */}
-        {showCaptions && (
+          {/* Dynamic Voice Orb */}
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-xl bg-slate-800/80 backdrop-blur-md p-4 rounded-2xl border border-slate-700 shadow-lg text-center"
+            layout
+            className={`relative flex flex-col items-center justify-center ${
+              hasActiveMistake ? 'my-1 sm:my-2' : 'my-3 sm:my-5'
+            } shrink-0 transition-all`}
           >
-            <div className="flex items-center justify-center gap-2 mb-1.5">
-              <Subtitles size={14} className="text-blue-400" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Live Subtitles • {isPaused ? 'Talk Paused' : isAiSpeaking ? 'Teacher Audio' : isUserSpeaking ? 'Student Audio' : 'Conversation Flow'}
-              </span>
+            <div className="relative flex items-center justify-center">
+              {/* AI Speaking Waves */}
+              {isAiSpeaking && !isPaused && (
+                <>
+                  <motion.div 
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                    className={`absolute ${hasActiveMistake ? 'w-36 h-36 sm:w-44 sm:h-44' : 'w-60 h-60'} rounded-full bg-blue-500/20 border border-blue-400/30`}
+                  />
+                  <motion.div 
+                    animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.8, 0.4] }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+                    className={`absolute ${hasActiveMistake ? 'w-28 h-28 sm:w-36 sm:h-36' : 'w-44 h-44'} rounded-full bg-indigo-500/30 border border-indigo-400/40`}
+                  />
+                </>
+              )}
+
+              {/* User Speaking Waves */}
+              {isUserSpeaking && !isPaused && (
+                <motion.div 
+                  animate={{ scale: [1, 1 + (volumeLevel / 100) * 0.35, 1], opacity: [0.4, 0.8, 0.4] }}
+                  transition={{ repeat: Infinity, duration: 0.8, ease: 'easeInOut' }}
+                  className={`absolute ${hasActiveMistake ? 'w-32 h-32 sm:w-40 sm:h-40' : 'w-52 h-52'} rounded-full bg-emerald-500/20 border border-emerald-400/30`}
+                />
+              )}
+
+              {/* Central Orb Avatar */}
+              <div className={`relative z-10 ${
+                hasActiveMistake ? 'w-20 h-20 sm:w-24 sm:h-24' : 'w-32 h-32 sm:w-36 sm:h-36'
+              } rounded-full bg-gradient-to-tr ${
+                isPaused
+                  ? 'from-amber-600 via-yellow-600 to-amber-700 shadow-amber-500/30 ring-amber-500/40'
+                  : isAiSpeaking
+                  ? 'from-blue-600 via-indigo-600 to-sky-400 shadow-blue-500/40'
+                  : isUserSpeaking
+                  ? 'from-emerald-500 via-teal-600 to-cyan-400 shadow-emerald-500/40'
+                  : isAiThinking
+                  ? 'from-amber-500 via-orange-600 to-yellow-400 animate-pulse'
+                  : isInterrupted
+                  ? 'from-purple-500 via-indigo-600 to-pink-400'
+                  : 'from-emerald-600 to-teal-700 ring-emerald-400/50'
+              } shadow-2xl flex flex-col items-center justify-center p-1 sm:p-2 ring-4 ring-slate-800 transition-all duration-300`}>
+                <div className={`${
+                  hasActiveMistake ? 'w-10 h-10 sm:w-12 sm:h-12' : 'w-16 h-16 sm:w-20 sm:h-20'
+                } rounded-full bg-slate-950/40 backdrop-blur-sm flex items-center justify-center text-white mb-0.5 sm:mb-1 transition-all`}>
+                  {isPaused ? (
+                    <Pause size={hasActiveMistake ? 18 : 30} className="text-amber-200" />
+                  ) : (
+                    <Sparkles size={hasActiveMistake ? 20 : 34} className={isAiSpeaking ? 'animate-bounce' : isUserSpeaking ? 'animate-pulse' : ''} />
+                  )}
+                </div>
+                <span className={`${hasActiveMistake ? 'text-[8px] sm:text-[9px]' : 'text-[10px]'} font-extrabold tracking-wider uppercase text-white/90 text-center px-1`}>
+                  {isPaused
+                    ? 'Paused'
+                    : isAiSpeaking
+                    ? 'Teacher Speaking'
+                    : isUserSpeaking
+                    ? 'You Speaking'
+                    : isAiThinking
+                    ? 'Processing...'
+                    : isInterrupted
+                    ? 'Interrupted'
+                    : 'Listening'}
+                </span>
+              </div>
             </div>
-            <p className="text-sm font-medium text-slate-100 leading-relaxed min-h-[1.5rem]">
-              {isPaused
-                ? '"Session is paused. Click resume to continue practicing spoken English."'
-                : currentCaption
-                ? `"${currentCaption}"`
-                : 'Listening for conversation...'}
-            </p>
+
+            {/* Paused Action Card */}
+            <AnimatePresence>
+              {isPaused && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="mt-2.5 flex items-center gap-2.5 bg-amber-950/60 border border-amber-500/40 px-3.5 py-1.5 rounded-2xl backdrop-blur-md shadow-xl"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                    <span className="text-xs font-semibold text-amber-200">Voice talk paused</span>
+                  </div>
+                  <button
+                    onClick={handleTogglePause}
+                    className="px-3 py-1 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1 transition-all shadow-md cursor-pointer"
+                  >
+                    <Play size={12} className="fill-slate-950" />
+                    <span>Resume</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
-        )}
+
+          {/* Live Soundwave Bars */}
+          <div className={`flex items-center gap-1.5 ${hasActiveMistake ? 'h-6 my-1 sm:my-1.5' : 'h-8 my-2 sm:my-3'} shrink-0 transition-all`}>
+            {[...Array(16)].map((_, i) => (
+              <motion.div
+                key={i}
+                animate={{
+                  height: isPaused
+                    ? 3
+                    : isAiSpeaking
+                    ? [4, Math.floor(Math.random() * (hasActiveMistake ? 20 : 30)) + 6, 4]
+                    : isUserSpeaking
+                    ? [4, Math.min(hasActiveMistake ? 24 : 36, Math.floor((volumeLevel / 100) * (hasActiveMistake ? 24 : 36)) + (i % 3) * 4), 4]
+                    : [3, 6, 3],
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 0.35 + (i % 5) * 0.08,
+                  ease: 'easeInOut',
+                }}
+                className={`w-1.5 rounded-full ${
+                  isPaused
+                    ? 'bg-slate-700'
+                    : isAiSpeaking
+                    ? 'bg-blue-400'
+                    : isUserSpeaking
+                    ? 'bg-emerald-400'
+                    : 'bg-slate-700'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Live Captions Subtitle Box - Always Visible & Full Width */}
+          {showCaptions && (
+            <motion.div 
+              ref={captionsRef}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full bg-slate-800/85 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl border border-slate-700/80 shadow-lg text-center shrink-0"
+            >
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <Subtitles size={13} className="text-blue-400" />
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  Live Subtitles • {isPaused ? 'Talk Paused' : isAiSpeaking ? 'Teacher Audio' : isUserSpeaking ? 'Student Audio' : 'Conversation Flow'}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm font-medium text-slate-100 leading-relaxed max-h-20 overflow-y-auto custom-scrollbar">
+                {isPaused
+                  ? '"Session is paused. Click resume to continue practicing spoken English."'
+                  : currentCaption
+                  ? `"${currentCaption}"`
+                  : 'Listening for conversation...'}
+              </p>
+            </motion.div>
+          )}
+        </div>
       </div>
 
       {/* Voice Call Control Toolbar */}
-      <div className="p-6 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-2">
           {/* Captions Toggle Button */}
           <button

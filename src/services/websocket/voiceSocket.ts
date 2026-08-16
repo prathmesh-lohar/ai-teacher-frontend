@@ -1,5 +1,6 @@
 import { VoiceSocketEvent } from '@/types/voice';
 import { getWebSocketUrl } from '@/config/env';
+import { getStoredTokens } from '@/services/api';
 
 export type VoiceSocketCallback = (event: VoiceSocketEvent) => void;
 
@@ -11,7 +12,9 @@ export class VoiceWebSocketService {
 
   public connect(sessionId: string = 'default'): Promise<boolean> {
     return new Promise((resolve) => {
-      this.url = getWebSocketUrl(`/ws/voice/${sessionId}/`);
+      const { access } = getStoredTokens();
+      const tokenQuery = access ? `?token=${encodeURIComponent(access)}` : '';
+      this.url = getWebSocketUrl(`/ws/voice/${sessionId}/${tokenQuery}`);
 
       try {
         this.socket = new WebSocket(this.url);

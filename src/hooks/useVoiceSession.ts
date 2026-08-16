@@ -13,6 +13,15 @@ import { VoiceWebSocketService } from '@/services/websocket/voiceSocket';
 import { AudioQueuePlayer } from '@/audio/player';
 import { AudioRecorder } from '@/audio/recorder';
 
+export interface UserSessionContext {
+  name?: string;
+  english_level?: string;
+  native_language?: string;
+  occupation?: string;
+  interests?: string[];
+  goals?: string[];
+}
+
 interface UseVoiceSessionProps {
   topic?: string;
   correctionMode?: CorrectionMode;
@@ -21,6 +30,7 @@ interface UseVoiceSessionProps {
   initialTtsProvider?: TTSProviderId;
   initialTtsVoice?: string;
   initialNativeLanguage?: string;
+  userContext?: UserSessionContext;
 }
 
 export function useVoiceSession({
@@ -31,6 +41,7 @@ export function useVoiceSession({
   initialTtsProvider = 'gtts',
   initialTtsVoice = 'en-in',
   initialNativeLanguage = 'Hindi',
+  userContext,
 }: UseVoiceSessionProps = {}) {
   const [state, setState] = useState<ConversationState>('idle');
   const [isConnected, setIsConnected] = useState(false);
@@ -63,8 +74,13 @@ export function useVoiceSession({
     voice: initialTtsVoice,
   });
   const nativeLangRef = useRef<string>(initialNativeLanguage);
+  const userContextRef = useRef<UserSessionContext | undefined>(userContext);
 
   // Keep refs updated
+  useEffect(() => {
+    userContextRef.current = userContext;
+  }, [userContext]);
+
   useEffect(() => {
     isHandsFreeRef.current = isHandsFree;
   }, [isHandsFree]);
@@ -291,6 +307,7 @@ export function useVoiceSession({
           native_language: nativeLangRef.current,
           tts_provider: ttsConfigRef.current.provider,
           tts_voice: ttsConfigRef.current.voice,
+          user_context: userContextRef.current,
         });
       }
     };
