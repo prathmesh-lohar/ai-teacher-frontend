@@ -72,7 +72,7 @@ export default function Home() {
       <main className="flex-1 flex flex-col min-w-0 transition-all duration-500 overflow-hidden relative glass-card rounded-[24px]">
         {currentTab !== 'talk' && <Header onOpenProfile={() => setTab('profile')} />}
         
-        <div className={currentTab === 'talk' ? "flex-1 w-full h-full overflow-hidden p-0 custom-scrollbar flex flex-col" : "flex-1 overflow-y-auto px-6 lg:px-8 pb-24 lg:pb-8 custom-scrollbar"}>
+        <div className={currentTab === 'talk' ? "flex-1 w-full h-full overflow-hidden p-0 custom-scrollbar flex flex-col pb-16 lg:pb-0" : "flex-1 overflow-y-auto px-6 lg:px-8 pb-24 lg:pb-8 custom-scrollbar"}>
           <AnimatePresence mode="wait">
             {/* Dashboard Module */}
             {currentTab === 'dashboard' && (

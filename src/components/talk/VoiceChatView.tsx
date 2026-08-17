@@ -324,33 +324,56 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
   return (
     <div className="h-full flex flex-col bg-slate-900 rounded-[2rem] text-white overflow-hidden relative border border-slate-800 shadow-2xl">
       {/* Voice Call Top Bar */}
-      <div className="px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-20 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-            <Sparkles size={20} className={isAiSpeaking ? 'animate-pulse' : ''} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-bold text-base text-white">AI Spoken English Tutor</h2>
-              <span className={`w-2 h-2 rounded-full ${isConnected ? (isPaused ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse') : 'bg-amber-500'}`} />
-              <span className="text-[10px] font-extrabold uppercase text-emerald-400 tracking-wider">
-                {isConnected ? (isPaused ? 'PAUSED' : `${currentProviderConfig.name}`) : 'Connecting...'}
-              </span>
+      <div className="px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-20 shrink-0">
+        {/* Title & Status */}
+        <div className="flex items-center justify-between sm:justify-start gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+              <Sparkles size={18} className={isAiSpeaking ? 'animate-pulse' : ''} />
             </div>
-            <p className="text-xs text-slate-400">Topic: <span className="text-slate-200 font-medium">{topic}</span></p>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="font-bold text-sm sm:text-base text-white">AI Spoken English Tutor</h2>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${isConnected ? (isPaused ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse') : 'bg-amber-500'}`} />
+                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-emerald-400 tracking-wider">
+                  {isConnected ? (isPaused ? 'PAUSED' : `${currentProviderConfig.name}`) : 'Connecting...'}
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate max-w-[200px] sm:max-w-none">
+                Topic: <span className="text-slate-200 font-medium">{topic}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Mode Switcher on Mobile Header Right */}
+          <div className="flex sm:hidden items-center bg-slate-800 p-0.5 rounded-xl border border-slate-700 shrink-0">
+            <button
+              onClick={() => onSwitchMode('video')}
+              title="Switch to Video Chat"
+              className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              <Video size={14} />
+            </button>
+            <button
+              onClick={() => onSwitchMode('text')}
+              title="Switch to Text Chat"
+              className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              <MessageSquare size={14} />
+            </button>
           </div>
         </div>
 
         {/* Live TTS, Voice & Native Language Quick Selectors */}
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
           {/* Native Language Correction Select */}
-          <div className="relative flex items-center bg-indigo-950/80 hover:bg-indigo-900/80 border border-indigo-500/40 rounded-xl px-2.5 py-1.5 transition-all shadow-sm">
-            <Languages size={13} className="text-indigo-300 mr-2 shrink-0" />
+          <div className="relative flex items-center bg-indigo-950/80 hover:bg-indigo-900/80 border border-indigo-500/40 rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 transition-all shadow-sm max-w-[125px] sm:max-w-none">
+            <Languages size={12} className="text-indigo-300 mr-1.5 shrink-0" />
             <select
               aria-label="Select Native Language for Corrections"
               value={nativeLanguage}
               onChange={(e) => handleNativeLanguageChange(e.target.value)}
-              className="bg-transparent text-xs font-semibold text-indigo-100 outline-none cursor-pointer pr-4 appearance-none"
+              className="bg-transparent text-[11px] sm:text-xs font-semibold text-indigo-100 outline-none cursor-pointer pr-3.5 appearance-none truncate w-full"
             >
               {NATIVE_LANGUAGES.map((lang) => (
                 <option key={lang.id} value={lang.id} className="bg-slate-900 text-slate-200 py-1">
@@ -358,17 +381,17 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
                 </option>
               ))}
             </select>
-            <ChevronDown size={12} className="text-indigo-300 pointer-events-none absolute right-2" />
+            <ChevronDown size={11} className="text-indigo-300 pointer-events-none absolute right-1.5" />
           </div>
 
           {/* TTS Provider Select */}
-          <div className="relative flex items-center bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-2.5 py-1.5 transition-all shadow-sm">
-            <Radio size={13} className="text-blue-400 mr-2 shrink-0" />
+          <div className="relative flex items-center bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 transition-all shadow-sm max-w-[125px] sm:max-w-none">
+            <Radio size={12} className="text-blue-400 mr-1.5 shrink-0" />
             <select
               aria-label="Select TTS Engine"
               value={ttsProvider}
               onChange={(e) => handleProviderChange(e.target.value as TTSProviderId)}
-              className="bg-transparent text-xs font-semibold text-slate-200 outline-none cursor-pointer pr-4 appearance-none"
+              className="bg-transparent text-[11px] sm:text-xs font-semibold text-slate-200 outline-none cursor-pointer pr-3.5 appearance-none truncate w-full"
             >
               {TTS_PROVIDERS.map((provider) => (
                 <option key={provider.id} value={provider.id} className="bg-slate-900 text-slate-200 py-1">
@@ -376,17 +399,17 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
                 </option>
               ))}
             </select>
-            <ChevronDown size={12} className="text-slate-400 pointer-events-none absolute right-2" />
+            <ChevronDown size={11} className="text-slate-400 pointer-events-none absolute right-1.5" />
           </div>
 
           {/* Voice & Accent Select */}
-          <div className="relative flex items-center bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-2.5 py-1.5 transition-all shadow-sm">
-            <Globe size={13} className="text-emerald-400 mr-2 shrink-0" />
+          <div className="relative flex items-center bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 transition-all shadow-sm max-w-[135px] sm:max-w-none">
+            <Globe size={12} className="text-emerald-400 mr-1.5 shrink-0" />
             <select
               aria-label="Select Voice and Accent"
               value={ttsVoice}
               onChange={(e) => handleVoiceChange(e.target.value)}
-              className="bg-transparent text-xs font-semibold text-slate-200 outline-none cursor-pointer pr-4 appearance-none"
+              className="bg-transparent text-[11px] sm:text-xs font-semibold text-slate-200 outline-none cursor-pointer pr-3.5 appearance-none truncate w-full"
             >
               {currentProviderConfig.voices.map((voice) => (
                 <option key={voice.id} value={voice.id} className="bg-slate-900 text-slate-200 py-1">
@@ -394,11 +417,11 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
                 </option>
               ))}
             </select>
-            <ChevronDown size={12} className="text-slate-400 pointer-events-none absolute right-2" />
+            <ChevronDown size={11} className="text-slate-400 pointer-events-none absolute right-1.5" />
           </div>
 
           {/* Call Duration Timer with dynamic DB max limit & Paused Indicator */}
-          <div className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-semibold flex items-center gap-1.5 transition-all ${
+          <div className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-mono font-semibold flex items-center gap-1 transition-all ${
             isPaused
               ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
               : callDuration >= maxDurationSeconds - 30
@@ -409,7 +432,7 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
             <span>{formatTime(callDuration)}</span>
             <span className="text-slate-500">/</span>
             <span className="text-slate-400">{formatTime(maxDurationSeconds)}</span>
-            {isPaused && <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-amber-300 ml-0.5">Paused</span>}
+            {isPaused && <span className="text-[9px] font-sans font-bold uppercase tracking-wider text-amber-300 ml-0.5">Paused</span>}
           </div>
 
           {/* View Reports Button */}
@@ -417,15 +440,15 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
             <button
               onClick={onViewReports}
               title="View Past Reports"
-              className="px-2.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+              className="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1 transition-all"
             >
-              <FileText size={13} />
+              <FileText size={12} />
               <span className="hidden sm:inline">Reports</span>
             </button>
           )}
 
-          {/* Quick Mode Switcher */}
-          <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+          {/* Quick Mode Switcher on Desktop */}
+          <div className="hidden sm:flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
             <button
               onClick={() => onSwitchMode('video')}
               title="Switch to Video Chat"
@@ -699,7 +722,7 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
           <motion.div 
             layout
             className={`relative flex flex-col items-center justify-center ${
-              hasActiveMistake ? 'my-1 sm:my-2' : 'my-3 sm:my-5'
+              hasActiveMistake ? 'my-1 sm:my-2' : 'my-2 sm:my-4'
             } shrink-0 transition-all`}
           >
             <div className="relative flex items-center justify-center">
@@ -709,12 +732,12 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
                   <motion.div 
                     animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
                     transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-                    className={`absolute ${hasActiveMistake ? 'w-36 h-36 sm:w-44 sm:h-44' : 'w-60 h-60'} rounded-full bg-blue-500/20 border border-blue-400/30`}
+                    className={`absolute ${hasActiveMistake ? 'w-32 h-32 sm:w-40 sm:h-40' : 'w-44 h-44 sm:w-56 sm:h-56'} rounded-full bg-blue-500/20 border border-blue-400/30`}
                   />
                   <motion.div 
                     animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.8, 0.4] }}
                     transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-                    className={`absolute ${hasActiveMistake ? 'w-28 h-28 sm:w-36 sm:h-36' : 'w-44 h-44'} rounded-full bg-indigo-500/30 border border-indigo-400/40`}
+                    className={`absolute ${hasActiveMistake ? 'w-26 h-26 sm:w-32 sm:h-32' : 'w-36 h-36 sm:w-44 sm:h-44'} rounded-full bg-indigo-500/30 border border-indigo-400/40`}
                   />
                 </>
               )}
@@ -724,13 +747,13 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
                 <motion.div 
                   animate={{ scale: [1, 1 + (volumeLevel / 100) * 0.35, 1], opacity: [0.4, 0.8, 0.4] }}
                   transition={{ repeat: Infinity, duration: 0.8, ease: 'easeInOut' }}
-                  className={`absolute ${hasActiveMistake ? 'w-32 h-32 sm:w-40 sm:h-40' : 'w-52 h-52'} rounded-full bg-emerald-500/20 border border-emerald-400/30`}
+                  className={`absolute ${hasActiveMistake ? 'w-28 h-28 sm:w-36 sm:h-36' : 'w-40 h-40 sm:w-50 sm:h-50'} rounded-full bg-emerald-500/20 border border-emerald-400/30`}
                 />
               )}
 
               {/* Central Orb Avatar */}
               <div className={`relative z-10 ${
-                hasActiveMistake ? 'w-20 h-20 sm:w-24 sm:h-24' : 'w-32 h-32 sm:w-36 sm:h-36'
+                hasActiveMistake ? 'w-18 h-18 sm:w-22 sm:h-22' : 'w-24 h-24 sm:w-32 sm:h-32'
               } rounded-full bg-gradient-to-tr ${
                 isPaused
                   ? 'from-amber-600 via-yellow-600 to-amber-700 shadow-amber-500/30 ring-amber-500/40'
@@ -745,23 +768,23 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
                   : 'from-emerald-600 to-teal-700 ring-emerald-400/50'
               } shadow-2xl flex flex-col items-center justify-center p-1 sm:p-2 ring-4 ring-slate-800 transition-all duration-300`}>
                 <div className={`${
-                  hasActiveMistake ? 'w-10 h-10 sm:w-12 sm:h-12' : 'w-16 h-16 sm:w-20 sm:h-20'
+                  hasActiveMistake ? 'w-9 h-9 sm:w-11 sm:h-11' : 'w-12 h-12 sm:w-16 sm:h-16'
                 } rounded-full bg-slate-950/40 backdrop-blur-sm flex items-center justify-center text-white mb-0.5 sm:mb-1 transition-all`}>
                   {isPaused ? (
-                    <Pause size={hasActiveMistake ? 18 : 30} className="text-amber-200" />
+                    <Pause size={hasActiveMistake ? 16 : 24} className="text-amber-200" />
                   ) : (
-                    <Sparkles size={hasActiveMistake ? 20 : 34} className={isAiSpeaking ? 'animate-bounce' : isUserSpeaking ? 'animate-pulse' : ''} />
+                    <Sparkles size={hasActiveMistake ? 18 : 28} className={isAiSpeaking ? 'animate-bounce' : isUserSpeaking ? 'animate-pulse' : ''} />
                   )}
                 </div>
-                <span className={`${hasActiveMistake ? 'text-[8px] sm:text-[9px]' : 'text-[10px]'} font-extrabold tracking-wider uppercase text-white/90 text-center px-1`}>
+                <span className={`${hasActiveMistake ? 'text-[7px] sm:text-[8px]' : 'text-[9px] sm:text-[10px]'} font-extrabold tracking-wider uppercase text-white/90 text-center px-1`}>
                   {isPaused
                     ? 'Paused'
                     : isAiSpeaking
-                    ? 'Teacher Speaking'
+                    ? 'Teacher'
                     : isUserSpeaking
-                    ? 'You Speaking'
+                    ? 'Speaking'
                     : isAiThinking
-                    ? 'Processing...'
+                    ? 'Thinking'
                     : isInterrupted
                     ? 'Interrupted'
                     : 'Listening'}
@@ -776,7 +799,7 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="mt-2.5 flex items-center gap-2.5 bg-amber-950/60 border border-amber-500/40 px-3.5 py-1.5 rounded-2xl backdrop-blur-md shadow-xl"
+                  className="mt-2 flex items-center gap-2 bg-amber-950/60 border border-amber-500/40 px-3 py-1 rounded-2xl backdrop-blur-md shadow-xl"
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
@@ -784,9 +807,9 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
                   </div>
                   <button
                     onClick={handleTogglePause}
-                    className="px-3 py-1 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1 transition-all shadow-md cursor-pointer"
+                    className="px-2.5 py-0.5 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1 transition-all shadow-md cursor-pointer"
                   >
-                    <Play size={12} className="fill-slate-950" />
+                    <Play size={11} className="fill-slate-950" />
                     <span>Resume</span>
                   </button>
                 </motion.div>
@@ -795,7 +818,7 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
           </motion.div>
 
           {/* Live Soundwave Bars */}
-          <div className={`flex items-center gap-1.5 ${hasActiveMistake ? 'h-6 my-1 sm:my-1.5' : 'h-8 my-2 sm:my-3'} shrink-0 transition-all`}>
+          <div className={`flex items-center gap-1 sm:gap-1.5 ${hasActiveMistake ? 'h-5 my-0.5 sm:my-1' : 'h-6 sm:h-8 my-1.5 sm:my-3'} shrink-0 transition-all`}>
             {[...Array(16)].map((_, i) => (
               <motion.div
                 key={i}
@@ -803,17 +826,17 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
                   height: isPaused
                     ? 3
                     : isAiSpeaking
-                    ? [4, Math.floor(Math.random() * (hasActiveMistake ? 20 : 30)) + 6, 4]
+                    ? [4, Math.floor(Math.random() * (hasActiveMistake ? 16 : 26)) + 5, 4]
                     : isUserSpeaking
-                    ? [4, Math.min(hasActiveMistake ? 24 : 36, Math.floor((volumeLevel / 100) * (hasActiveMistake ? 24 : 36)) + (i % 3) * 4), 4]
-                    : [3, 6, 3],
+                    ? [4, Math.min(hasActiveMistake ? 20 : 32, Math.floor((volumeLevel / 100) * (hasActiveMistake ? 20 : 32)) + (i % 3) * 3), 4]
+                    : [3, 5, 3],
                 }}
                 transition={{
                   repeat: Infinity,
                   duration: 0.35 + (i % 5) * 0.08,
                   ease: 'easeInOut',
                 }}
-                className={`w-1.5 rounded-full ${
+                className={`w-1 sm:w-1.5 rounded-full ${
                   isPaused
                     ? 'bg-slate-700'
                     : isAiSpeaking
@@ -832,15 +855,15 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
               ref={captionsRef}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full bg-slate-800/85 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl border border-slate-700/80 shadow-lg text-center shrink-0"
+              className="w-full bg-slate-800/85 backdrop-blur-md p-2.5 sm:p-3.5 rounded-2xl border border-slate-700/80 shadow-lg text-center shrink-0"
             >
               <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Subtitles size={13} className="text-blue-400" />
+                <Subtitles size={12} className="text-blue-400" />
                 <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
                   Live Subtitles • {isPaused ? 'Talk Paused' : isAiSpeaking ? 'Teacher Audio' : isUserSpeaking ? 'Student Audio' : 'Conversation Flow'}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm font-medium text-slate-100 leading-relaxed max-h-20 overflow-y-auto custom-scrollbar">
+              <p className="text-[11px] sm:text-sm font-medium text-slate-100 leading-relaxed max-h-16 sm:max-h-20 overflow-y-auto custom-scrollbar">
                 {isPaused
                   ? '"Session is paused. Click resume to continue practicing spoken English."'
                   : currentCaption
@@ -853,28 +876,30 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
       </div>
 
       {/* Voice Call Control Toolbar */}
-      <div className="p-4 sm:p-6 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="p-3 sm:p-5 lg:p-6 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between gap-2 sm:gap-4 shrink-0 z-20">
+        {/* Left Actions: Captions, Pause, Interrupt */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Captions Toggle Button */}
           <button
             onClick={() => setShowCaptions(!showCaptions)}
-            className={`p-3 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${
+            title="Toggle Live Subtitles"
+            className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
               showCaptions
                 ? 'bg-blue-600/20 border-blue-500/40 text-blue-400'
                 : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
             }`}
           >
-            <Subtitles size={18} />
-            <span className="hidden sm:inline">Captions</span>
+            <Subtitles size={16} />
+            <span className="hidden md:inline">Captions</span>
           </button>
 
           {/* Pause / Resume Button */}
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={handleTogglePause}
             title={isPaused ? "Resume conversation" : "Pause conversation"}
-            className={`px-4 py-3 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md ${
+            className={`px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0 ${
               isPaused
                 ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400 shadow-emerald-600/30 ring-2 ring-emerald-400/40 animate-pulse'
                 : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border-amber-500/40 hover:border-amber-400'
@@ -882,38 +907,44 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
           >
             {isPaused ? (
               <>
-                <Play size={18} className="fill-current" />
-                <span>Resume Talk</span>
+                <Play size={16} className="fill-current" />
+                <span>Resume</span>
               </>
             ) : (
               <>
-                <Pause size={18} />
+                <Pause size={16} />
                 <span>Pause</span>
               </>
             )}
           </motion.button>
 
+          {/* Interrupt Teacher Button */}
           {isAiSpeaking && !isPaused && (
-            <button
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
               onClick={interruptAi}
-              className="px-3.5 py-2.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-2xl text-xs font-bold flex items-center gap-1.5 hover:bg-amber-500/30 transition-colors animate-pulse"
+              title="Interrupt Teacher & Speak"
+              className="px-2.5 sm:px-3.5 py-2.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-xl sm:rounded-2xl text-xs font-bold flex items-center gap-1 hover:bg-amber-500/30 transition-colors animate-pulse shrink-0"
             >
-              <Zap size={15} />
-              <span>Interrupt Teacher</span>
-            </button>
+              <Zap size={14} />
+              <span className="hidden sm:inline">Interrupt Teacher</span>
+              <span className="sm:hidden">Interrupt</span>
+            </motion.button>
           )}
         </div>
 
-        {/* Primary Call Controls: Hands-Free Auto Active / Paused Pill */}
-        <div className="flex items-center gap-4">
+        {/* Right Actions: Status indicator & End Call Button */}
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
+          {/* Primary Status Pill */}
           <motion.div
             whileHover={{ scale: 1.02 }}
             onClick={isPaused ? handleTogglePause : undefined}
-            className={`px-6 py-3.5 rounded-full flex items-center gap-3 font-extrabold shadow-lg transition-all ${
+            className={`px-2.5 sm:px-5 py-2 sm:py-3 rounded-full flex items-center gap-1.5 sm:gap-2.5 font-bold text-xs sm:text-sm shadow-md transition-all truncate ${
               isPaused
                 ? 'bg-amber-950/90 border border-amber-500/60 text-amber-300 cursor-pointer hover:bg-amber-900/90'
                 : isUserSpeaking
-                ? 'bg-emerald-500 text-white shadow-emerald-500/40 ring-4 ring-emerald-500/30'
+                ? 'bg-emerald-500 text-white shadow-emerald-500/40 ring-2 ring-emerald-500/30'
                 : isAiSpeaking
                 ? 'bg-blue-600 text-white shadow-blue-600/40'
                 : isAiThinking
@@ -923,38 +954,40 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }:
           >
             {isPaused ? (
               <>
-                <Pause size={22} className="text-amber-400 animate-pulse" />
-                <span className="text-sm">Session Paused (Click to Resume)</span>
+                <Pause size={16} className="text-amber-400 animate-pulse shrink-0" />
+                <span className="truncate hidden xs:inline sm:inline">Paused</span>
               </>
             ) : (
               <>
-                <Mic size={22} className={isUserSpeaking ? 'animate-bounce text-white' : isAiSpeaking ? 'text-blue-300' : 'text-emerald-400 animate-pulse'} />
-                <span className="text-sm">
+                <Mic size={16} className={`shrink-0 ${isUserSpeaking ? 'animate-bounce text-white' : isAiSpeaking ? 'text-blue-300' : 'text-emerald-400 animate-pulse'}`} />
+                <span className="truncate max-w-[80px] xs:max-w-[120px] sm:max-w-[200px] md:max-w-none">
                   {isUserSpeaking
-                    ? 'Speaking (Auto sends when you pause)'
+                    ? 'Speaking...'
                     : isAiSpeaking
-                    ? 'Teacher Speaking (Listen to question)'
+                    ? 'Teacher'
                     : isAiThinking
-                    ? 'AI is processing your answer...'
-                    : 'AI Listening (Speak freely)'}
+                    ? 'Thinking...'
+                    : 'Listening...'}
                 </span>
               </>
             )}
           </motion.div>
 
+          {/* End Call Button - Prominent and always fully accessible */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleEndCall('user_ended')}
             title="End Session & Generate Report"
-            className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg shadow-red-600/40 transition-all cursor-pointer"
+            className="w-10 h-10 sm:w-13 sm:h-13 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg shadow-red-600/40 transition-all cursor-pointer shrink-0"
           >
-            <PhoneOff size={22} />
+            <PhoneOff size={18} className="sm:hidden" />
+            <PhoneOff size={22} className="hidden sm:block" />
           </motion.button>
         </div>
 
         {/* Info Hint */}
-        <div className="hidden md:flex items-center gap-2 text-xs font-medium">
+        <div className="hidden lg:flex items-center gap-2 text-xs font-medium">
           {isPaused ? (
             <div className="flex items-center gap-2 text-amber-400">
               <span className="w-2 h-2 rounded-full bg-amber-400" />

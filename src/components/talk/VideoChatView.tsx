@@ -86,50 +86,54 @@ export function VideoChatView({ topic, onEndCall, onSwitchMode }: VideoChatViewP
   return (
     <div className="h-full flex flex-col bg-slate-950 rounded-[2rem] text-white overflow-hidden relative border border-slate-800 shadow-2xl">
       {/* Video Call Top Bar */}
-      <div className="px-6 lg:px-8 py-4 flex items-center justify-between bg-slate-900/80 backdrop-blur-md border-b border-slate-800 z-20">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
-            <Video size={20} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-bold text-base text-white">AI HD Video Avatar</h2>
-              <span className={`w-2 h-2 rounded-full ${isPaused ? 'bg-amber-400' : 'bg-purple-500 animate-ping'}`} />
-              <span className="text-[10px] font-extrabold uppercase text-purple-400 tracking-wider">
-                {isPaused ? 'Session Paused' : '1080p Stream'}
-              </span>
+      <div className="px-3 sm:px-6 lg:px-8 py-2.5 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 z-20 shrink-0">
+        <div className="flex items-center justify-between sm:justify-start gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+              <Video size={18} />
             </div>
-            <p className="text-xs text-slate-400">Topic: <span className="text-slate-200 font-medium">{topic}</span></p>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="font-bold text-sm sm:text-base text-white">AI HD Video Avatar</h2>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${isPaused ? 'bg-amber-400' : 'bg-purple-500 animate-ping'}`} />
+                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-purple-400 tracking-wider">
+                  {isPaused ? 'Paused' : '1080p Stream'}
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate max-w-[200px] sm:max-w-none">
+                Topic: <span className="text-slate-200 font-medium">{topic}</span>
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Timer & Quick Mode Switches */}
-        <div className="flex items-center gap-3">
-          <div className={`px-3 py-1.5 rounded-full border text-xs font-mono font-semibold flex items-center gap-1.5 transition-all ${
+        <div className="flex items-center gap-2">
+          <div className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border text-[11px] sm:text-xs font-mono font-semibold flex items-center gap-1.5 transition-all ${
             isPaused
               ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
               : 'bg-slate-800 border-slate-700 text-purple-400'
           }`}>
             {isPaused && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
             <span>{formatTime(callDuration)}</span>
-            {isPaused && <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-amber-300 ml-0.5">Paused</span>}
+            {isPaused && <span className="text-[9px] font-sans font-bold uppercase tracking-wider text-amber-300 ml-0.5">Paused</span>}
           </div>
 
-          <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+          <div className="flex items-center bg-slate-800 p-0.5 sm:p-1 rounded-xl border border-slate-700">
             <button
               onClick={() => onSwitchMode('voice')}
               title="Switch to Voice Chat"
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
             >
-              <Mic size={14} />
+              <Mic size={13} />
               <span className="hidden sm:inline">Voice</span>
             </button>
             <button
               onClick={() => onSwitchMode('text')}
               title="Switch to Text Chat"
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
             >
-              <MessageSquare size={14} />
+              <MessageSquare size={13} />
               <span className="hidden sm:inline">Text</span>
             </button>
           </div>
@@ -249,28 +253,30 @@ export function VideoChatView({ topic, onEndCall, onSwitchMode }: VideoChatViewP
         </div>
       </div>
 
-      {/* Video Call Toolbar */}
-      <div className="p-5 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between gap-4 z-20">
-        <div className="flex items-center gap-2">
+      {/* Video Call Control Toolbar */}
+      <div className="p-3 sm:p-5 lg:p-6 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between gap-2 sm:gap-4 shrink-0 z-20">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Captions Toggle Button */}
           <button
             onClick={() => setShowCaptions(!showCaptions)}
-            className={`p-3 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${
+            title="Toggle Live Subtitles"
+            className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
               showCaptions
                 ? 'bg-purple-600/20 border-purple-500/40 text-purple-400'
                 : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
             }`}
           >
-            <Subtitles size={18} />
-            <span className="hidden sm:inline">Captions</span>
+            <Subtitles size={16} />
+            <span className="hidden md:inline">Captions</span>
           </button>
 
           {/* Pause / Resume Button */}
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => setIsPaused(!isPaused)}
             title={isPaused ? "Resume video conversation" : "Pause video conversation"}
-            className={`px-4 py-3 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md ${
+            className={`px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0 ${
               isPaused
                 ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400 shadow-emerald-600/30 animate-pulse'
                 : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border-amber-500/40 hover:border-amber-400'
@@ -278,12 +284,12 @@ export function VideoChatView({ topic, onEndCall, onSwitchMode }: VideoChatViewP
           >
             {isPaused ? (
               <>
-                <Play size={18} className="fill-current" />
-                <span>Resume Talk</span>
+                <Play size={16} className="fill-current" />
+                <span>Resume</span>
               </>
             ) : (
               <>
-                <Pause size={18} />
+                <Pause size={16} />
                 <span>Pause</span>
               </>
             )}
@@ -291,44 +297,48 @@ export function VideoChatView({ topic, onEndCall, onSwitchMode }: VideoChatViewP
         </div>
 
         {/* Call Action Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsCameraOn(!isCameraOn)}
-            className={`w-13 h-13 rounded-full flex items-center justify-center transition-all ${
+            title={isCameraOn ? "Turn off camera" : "Turn on camera"}
+            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all ${
               !isCameraOn
                 ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
                 : 'bg-slate-800 text-white border border-slate-700 hover:bg-slate-700'
             }`}
           >
-            {isCameraOn ? <Video size={20} /> : <VideoOff size={20} />}
+            {isCameraOn ? <Video size={17} /> : <VideoOff size={17} />}
           </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsMuted(!isMuted)}
-            className={`w-13 h-13 rounded-full flex items-center justify-center transition-all ${
+            title={isMuted ? "Unmute microphone" : "Mute microphone"}
+            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all ${
               isMuted
                 ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
                 : 'bg-slate-800 text-white border border-slate-700 hover:bg-slate-700'
             }`}
           >
-            {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+            {isMuted ? <MicOff size={17} /> : <Mic size={17} />}
           </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onEndCall}
-            className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg shadow-red-600/40 transition-all"
+            title="End Video Session"
+            className="w-10 h-10 sm:w-13 sm:h-13 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg shadow-red-600/40 transition-all cursor-pointer shrink-0"
           >
-            <PhoneOff size={22} />
+            <PhoneOff size={18} className="sm:hidden" />
+            <PhoneOff size={22} className="hidden sm:block" />
           </motion.button>
         </div>
 
-        <div className="hidden md:flex items-center gap-2 text-xs font-medium">
+        <div className="hidden lg:flex items-center gap-2 text-xs font-medium">
           {isPaused ? (
             <div className="flex items-center gap-2 text-amber-400">
               <span className="w-2 h-2 rounded-full bg-amber-400" />
