@@ -28,29 +28,36 @@ import {
   Volume1,
   Pause,
   Play,
+  FileText,
   X
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useVoiceSession, UserSessionContext } from '@/hooks/useVoiceSession';
 import { TTS_PROVIDERS, TTSProviderId, NATIVE_LANGUAGES, NativeLanguageOption } from '@/types/voice';
 import { speechPlayer } from '@/audio/speechPlayer';
+import { ChatMode } from './TalkModeSelector';
+import { SessionReportDetailView } from '@/components/reports/SessionReportDetailView';
 
 interface VoiceChatViewProps {
   topic: string;
   onEndCall: () => void;
   onSwitchMode: (mode: ChatMode) => void;
+  onViewReports?: () => void;
 }
 
-export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewProps) {
+export function VoiceChatView({ topic, onEndCall, onSwitchMode, onViewReports }: VoiceChatViewProps) {
   const { user } = useAuth();
   const [isSpeakerOff, setIsSpeakerOff] = useState(false);
   const [showCaptions, setShowCaptions] = useState(true);
   const [callDuration, setCallDuration] = useState(0);
+  const [silenceCountdown, setSilenceCountdown] = useState<number>(30);
   const [switchToast, setSwitchToast] = useState<string | null>(null);
   const [showEnglishRule, setShowEnglishRule] = useState(false);
   const [playingSpeechKey, setPlayingSpeechKey] = useState<string | null>(null);
   const [dismissedMistakeKey, setDismissedMistakeKey] = useState<string | null>(null);
+  const [activeReportTab, setActiveReportTab] = useState<'metrics' | 'transcript'>('metrics');
   const captionsRef = useRef<HTMLDivElement | null>(null);
+  const hasEndedRef = useRef<boolean>(false);
 
   // Initialize initial provider and voice from localStorage if available
   const [savedProvider] = useState<TTSProviderId>(() => {
@@ -58,7 +65,7 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
       const p = localStorage.getItem('talk_tts_provider') as TTSProviderId;
       if (p && TTS_PROVIDERS.some((tp) => tp.id === p)) return p;
     }
-    return 'gtts';
+    return 'edge';
   });
 
   const [savedVoice] = useState<string>(() => {
@@ -66,7 +73,7 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
       const v = localStorage.getItem('talk_tts_voice');
       if (v) return v;
     }
-    return 'en-in'; // Indian English default
+    return 'en-IN-NeerjaNeural'; // Microsoft Edge Indian English default
   });
 
   const [savedNativeLang] = useState<string>(() => {
@@ -102,6 +109,8 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
     nativeLanguage,
     isHandsFree,
     isPaused,
+    maxDurationSeconds,
+    inactivityTimeoutSeconds,
     togglePause,
     toggleHandsFree,
     updateTtsConfig,
@@ -127,13 +136,61 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
       : null;
   const hasActiveMistake = Boolean(activeMistake);
 
+  // Sync silenceCountdown with dynamic inactivityTimeoutSeconds from DB
   useEffect(() => {
-    if (isPaused) return;
+    if (inactivityTimeoutSeconds) {
+      setSilenceCountdown(inactivityTimeoutSeconds);
+    }
+  }, [inactivityTimeoutSeconds]);
+
+  // 1. Call Duration Timer & 5-minute Auto-End
+  useEffect(() => {
+    if (isPaused || report || state === 'ended') return;
     const timer = setInterval(() => {
-      setCallDuration((prev) => prev + 1);
+      setCallDuration((prev) => {
+        const next = prev + 1;
+        // Auto-end call if max duration is reached (dynamic from DB, default 300s / 5 min)
+        if (next >= maxDurationSeconds && !hasEndedRef.current) {
+          hasEndedRef.current = true;
+          showSwitchFeedback(`⏱️ ${Math.round(maxDurationSeconds / 60)}-Minute session limit reached. Generating report...`);
+          handleEndCall('max_duration_reached');
+        }
+        return next;
+      });
     }, 1000);
     return () => clearInterval(timer);
-  }, [isPaused]);
+  }, [isPaused, report, state, maxDurationSeconds]);
+
+  // 2. 30-Second Inactivity / Silence Timeout
+  useEffect(() => {
+    if (isPaused || report || state === 'ended' || !isConnected) return;
+
+    // Reset silence timer if user is actively speaking or AI is generating/speaking
+    const isUserActive = isRecording || state === 'user_speaking' || volumeLevel > 6;
+    const isAiActive = state === 'ai_speaking' || state === 'ai_thinking' || state === 'user_processing';
+
+    if (isUserActive || isAiActive) {
+      setSilenceCountdown(inactivityTimeoutSeconds || 30);
+      return;
+    }
+
+    // Only count down silence when waiting for user input
+    const silenceInterval = setInterval(() => {
+      setSilenceCountdown((prev) => {
+        if (prev <= 1) {
+          if (!hasEndedRef.current) {
+            hasEndedRef.current = true;
+            showSwitchFeedback(`🔇 Call auto-ended due to ${inactivityTimeoutSeconds || 30}s of silence. Generating report...`);
+            handleEndCall('inactivity_timeout');
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(silenceInterval);
+  }, [isPaused, report, state, isConnected, isRecording, volumeLevel, inactivityTimeoutSeconds]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -141,13 +198,11 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleEndCall = () => {
+  const handleEndCall = (reason: string = 'user_ended') => {
+    hasEndedRef.current = true;
     speechPlayer.stop();
     setPlayingSpeechKey(null);
-    endSession();
-    if (!report) {
-      setTimeout(() => onEndCall(), 800);
-    }
+    endSession(reason);
   };
 
   // Find active provider, active voice, and active native language metadata
@@ -230,6 +285,42 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
   const isAiThinking = state === 'ai_thinking' || state === 'user_processing';
   const isInterrupted = state === 'interrupted';
 
+  // If session has concluded and report is generated, immediately show dedicated full-page Report View!
+  if (report) {
+    return (
+      <SessionReportDetailView
+        sessionId={report.session_id}
+        initialData={{
+          session: {
+            id: report.session_id,
+            title: topic,
+            topic: topic,
+            session_type: 'Voice Practice',
+            correction_mode: 'realtime',
+            status: 'completed',
+            max_duration_seconds: maxDurationSeconds,
+            inactivity_timeout_seconds: inactivityTimeoutSeconds,
+            end_reason: report.end_reason,
+            started_at: new Date().toISOString(),
+            duration_seconds: report.duration_seconds || callDuration,
+            turns_count: turns.length,
+            report: report,
+          },
+          report,
+          turns,
+        }}
+        onBack={() => {
+          speechPlayer.stop();
+          onEndCall();
+        }}
+        onStartPractice={() => {
+          speechPlayer.stop();
+          onEndCall();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="h-full flex flex-col bg-slate-900 rounded-[2rem] text-white overflow-hidden relative border border-slate-800 shadow-2xl">
       {/* Voice Call Top Bar */}
@@ -306,16 +397,32 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
             <ChevronDown size={12} className="text-slate-400 pointer-events-none absolute right-2" />
           </div>
 
-          {/* Call Duration Timer with Paused Indicator */}
+          {/* Call Duration Timer with dynamic DB max limit & Paused Indicator */}
           <div className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-semibold flex items-center gap-1.5 transition-all ${
             isPaused
               ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+              : callDuration >= maxDurationSeconds - 30
+              ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 animate-pulse'
               : 'bg-slate-800 border-slate-700 text-blue-400'
           }`}>
             {isPaused && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
             <span>{formatTime(callDuration)}</span>
+            <span className="text-slate-500">/</span>
+            <span className="text-slate-400">{formatTime(maxDurationSeconds)}</span>
             {isPaused && <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-amber-300 ml-0.5">Paused</span>}
           </div>
+
+          {/* View Reports Button */}
+          {onViewReports && (
+            <button
+              onClick={onViewReports}
+              title="View Past Reports"
+              className="px-2.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+            >
+              <FileText size={13} />
+              <span className="hidden sm:inline">Reports</span>
+            </button>
+          )}
 
           {/* Quick Mode Switcher */}
           <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
@@ -352,6 +459,21 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
             >
               <Check size={14} className="text-emerald-400" />
               <span>{switchToast}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 30-Second Inactivity Warning Toast */}
+        <AnimatePresence>
+          {!report && state !== 'ended' && !isPaused && isConnected && state === 'idle' && !isRecording && silenceCountdown <= 10 && silenceCountdown > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className="absolute top-12 left-1/2 -translate-x-1/2 z-30 bg-amber-500/25 border border-amber-500/60 text-amber-200 px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 backdrop-blur-md shadow-xl ring-2 ring-amber-500/30 whitespace-nowrap animate-bounce"
+            >
+              <AlertCircle size={15} className="text-amber-400 shrink-0" />
+              <span>No speech detected. Call will auto-end in {silenceCountdown}s...</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -823,7 +945,7 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={handleEndCall}
+            onClick={() => handleEndCall('user_ended')}
             title="End Session & Generate Report"
             className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg shadow-red-600/40 transition-all cursor-pointer"
           >
@@ -846,121 +968,6 @@ export function VoiceChatView({ topic, onEndCall, onSwitchMode }: VoiceChatViewP
           )}
         </div>
       </div>
-
-      {/* End-of-Session Performance Report Modal */}
-      <AnimatePresence>
-        {report && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-950/90 backdrop-blur-lg z-50 flex items-center justify-center p-6 overflow-y-auto"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="max-w-2xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 lg:p-8 shadow-2xl space-y-6"
-            >
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
-                    <Award size={28} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">English Performance Report</h3>
-                    <p className="text-xs text-slate-400">{topic} • Duration: {formatTime(report.duration_seconds || callDuration)}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-3xl font-black text-blue-400">{report.overall_score}</span>
-                  <span className="text-xs text-slate-400 block font-semibold">/ 100 Overall</span>
-                </div>
-              </div>
-
-              {/* Metric Breakdown Progress Bars */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/60">
-                  <span className="text-[11px] font-bold text-slate-400 block">Grammar</span>
-                  <span className="text-lg font-extrabold text-white">{report.grammar_score}%</span>
-                  <div className="w-full bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
-                    <div className="bg-blue-500 h-full rounded-full" style={{ width: `${report.grammar_score}%` }} />
-                  </div>
-                </div>
-                <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/60">
-                  <span className="text-[11px] font-bold text-slate-400 block">Vocabulary</span>
-                  <span className="text-lg font-extrabold text-white">{report.vocabulary_score}%</span>
-                  <div className="w-full bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
-                    <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${report.vocabulary_score}%` }} />
-                  </div>
-                </div>
-                <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/60">
-                  <span className="text-[11px] font-bold text-slate-400 block">Fluency</span>
-                  <span className="text-lg font-extrabold text-white">{report.fluency_score}%</span>
-                  <div className="w-full bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${report.fluency_score}%` }} />
-                  </div>
-                </div>
-                <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/60">
-                  <span className="text-[11px] font-bold text-slate-400 block">Confidence</span>
-                  <span className="text-lg font-extrabold text-white">{report.confidence_score}%</span>
-                  <div className="w-full bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
-                    <div className="bg-amber-500 h-full rounded-full" style={{ width: `${report.confidence_score}%` }} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Examiner Summary */}
-              {report.summary && (
-                <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/60">
-                  <p className="text-xs text-slate-300 leading-relaxed italic">"{report.summary}"</p>
-                </div>
-              )}
-
-              {/* Strengths & Recommendations */}
-              <div className="grid sm:grid-cols-2 gap-4 text-xs">
-                {report.strengths?.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="font-bold text-emerald-400 flex items-center gap-1.5">
-                      <CheckCircle2 size={14} /> Key Strengths
-                    </h4>
-                    <ul className="space-y-1.5 text-slate-300">
-                      {report.strengths.map((s, idx) => (
-                        <li key={idx} className="flex items-start gap-1.5">
-                          <span className="text-emerald-400">•</span> {s}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {report.recommendations?.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="font-bold text-blue-400 flex items-center gap-1.5">
-                      <TrendingUp size={14} /> Actionable Focus
-                    </h4>
-                    <ul className="space-y-1.5 text-slate-300">
-                      {report.recommendations.map((r, idx) => (
-                        <li key={idx} className="flex items-start gap-1.5">
-                          <span className="text-blue-400">•</span> {r}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <button
-                  onClick={onEndCall}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-2"
-                >
-                  <span>Close & Return to Dashboard</span>
-                  <ArrowRight size={14} />
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -236,7 +236,7 @@ export class AudioRecorder {
           this.audioChunks.push(event.data);
         }
       };
-      this.mediaRecorder.start(200);
+      this.mediaRecorder.start();
     } catch (e) {
       console.error('Failed to start MediaRecorder:', e);
     }
@@ -310,7 +310,7 @@ export class AudioRecorder {
         }
       };
 
-      this.mediaRecorder.start(250);
+      this.mediaRecorder.start();
       return true;
     } catch (err) {
       console.error('Failed to access microphone:', err);

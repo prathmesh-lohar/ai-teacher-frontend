@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, BookOpen, MessageSquare, UserCircle, Sparkles, LogIn } from 'lucide-react';
+import { LayoutDashboard, BookOpen, MessageSquare, UserCircle, Sparkles, LogIn, FileText } from 'lucide-react';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import HeroBanner from '@/components/dashboard/HeroBanner';
@@ -12,6 +12,7 @@ import ContinueLearning from '@/components/dashboard/ContinueLearning';
 import LessonsTable from '@/components/dashboard/LessonsTable';
 import TalkAiInterface from '@/components/talk/TalkAiInterface';
 import ProfileModule from '@/components/profile/ProfileModule';
+import ReportsModule from '@/components/reports/ReportsModule';
 import ApprovalPending from '@/components/auth/ApprovalPending';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/common/Button';
@@ -71,7 +72,7 @@ export default function Home() {
       <main className="flex-1 flex flex-col min-w-0 transition-all duration-500 overflow-hidden relative glass-card rounded-[24px]">
         {currentTab !== 'talk' && <Header onOpenProfile={() => setTab('profile')} />}
         
-        <div className={currentTab === 'talk' ? "flex-1 overflow-hidden p-0 custom-scrollbar flex flex-col" : "flex-1 overflow-y-auto px-6 lg:px-8 pb-24 lg:pb-8 custom-scrollbar"}>
+        <div className={currentTab === 'talk' ? "flex-1 w-full h-full overflow-hidden p-0 custom-scrollbar flex flex-col" : "flex-1 overflow-y-auto px-6 lg:px-8 pb-24 lg:pb-8 custom-scrollbar"}>
           <AnimatePresence mode="wait">
             {/* Dashboard Module */}
             {currentTab === 'dashboard' && (
@@ -112,14 +113,28 @@ export default function Home() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 1.02 }}
                 transition={{ duration: 0.3 }}
-                className="h-full"
+                className="h-full w-full flex-1 flex flex-col"
               >
-                <TalkAiInterface />
+                <TalkAiInterface onViewReports={() => setTab('reports')} />
+              </motion.div>
+            )}
+
+            {/* Reports Module */}
+            {currentTab === 'reports' && (
+              <motion.div
+                key="reports"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3 }}
+                className="py-4 h-full"
+              >
+                <ReportsModule onStartPractice={() => setTab('talk')} />
               </motion.div>
             )}
 
             {/* Module Development Placeholder for other tabs */}
-            {currentTab !== 'dashboard' && currentTab !== 'talk' && currentTab !== 'profile' && (
+            {currentTab !== 'dashboard' && currentTab !== 'talk' && currentTab !== 'profile' && currentTab !== 'reports' && (
               <motion.div
                 key="placeholder"
                 initial={{ opacity: 0, y: 15 }}

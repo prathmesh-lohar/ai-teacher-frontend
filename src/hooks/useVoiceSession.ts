@@ -34,12 +34,12 @@ interface UseVoiceSessionProps {
 }
 
 export function useVoiceSession({
-  topic = 'IELTS Speaking Test',
+  topic = 'Daily Casual Talk',
   correctionMode = 'realtime',
   autoStart = true,
   autoTurnEnabled = true,
-  initialTtsProvider = 'gtts',
-  initialTtsVoice = 'en-in',
+  initialTtsProvider = 'edge',
+  initialTtsVoice = 'en-IN-NeerjaNeural',
   initialNativeLanguage = 'Hindi',
   userContext,
 }: UseVoiceSessionProps = {}) {
@@ -53,6 +53,8 @@ export function useVoiceSession({
   const [report, setReport] = useState<SessionReportData | null>(null);
   const [isHandsFree, setIsHandsFree] = useState(autoTurnEnabled);
   const [isPaused, setIsPaused] = useState(false);
+  const [maxDurationSeconds, setMaxDurationSeconds] = useState<number>(300);
+  const [inactivityTimeoutSeconds, setInactivityTimeoutSeconds] = useState<number>(30);
 
   // Active TTS provider and voice
   const [ttsProvider, setTtsProvider] = useState<TTSProviderId>(initialTtsProvider);
@@ -143,13 +145,17 @@ export function useVoiceSession({
           if (event.tts_provider) setTtsProvider(event.tts_provider);
           if (event.tts_voice) setTtsVoice(event.tts_voice);
           if (event.native_language) setNativeLanguage(event.native_language);
+          if (event.max_duration_seconds) setMaxDurationSeconds(Number(event.max_duration_seconds));
+          if (event.inactivity_timeout_seconds) setInactivityTimeoutSeconds(Number(event.inactivity_timeout_seconds));
 
           // Start continuous VAD listening for automatic hands-free turn taking
           if (isHandsFreeRef.current && !isPausedRef.current) {
             recorder.startContinuousVAD(
               {
                 onVolumeUpdate: (vol) => {
-                  if (!isPausedRef.current) setVolumeLevel(vol);
+                  if (!isPausedRef.current) {
+                    setVolumeLevel((prev) => (Math.abs(prev - vol) > 4 ? vol : prev));
+                  }
                 },
                 onBargeIn: () => {
                   if (!isPausedRef.current) handleBargeIn();
@@ -253,8 +259,21 @@ export function useVoiceSession({
           break;
 
         case 'correction.detected':
-          if (event.mistakes) {
+          if (event.mistakes && event.mistakes.length > 0) {
             setLatestMistakes(event.mistakes);
+            setTurns((prev) => {
+              const updated = [...prev];
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].speaker === 'user') {
+                  updated[i] = {
+                    ...updated[i],
+                    mistakes: event.mistakes,
+                  };
+                  break;
+                }
+              }
+              return updated;
+            });
           }
           break;
 
@@ -432,10 +451,13 @@ export function useVoiceSession({
   }, []);
 
   // End session and request report
-  const endSession = useCallback(() => {
+  const endSession = useCallback((endReason: string = 'completed') => {
     playerRef.current?.interrupt();
     recorderRef.current?.cleanup();
-    socketServiceRef.current?.send({ type: 'session.end' });
+    socketServiceRef.current?.send({ 
+      type: 'session.end',
+      end_reason: endReason
+    });
   }, []);
 
   return {
@@ -452,6 +474,8 @@ export function useVoiceSession({
     nativeLanguage,
     isHandsFree,
     isPaused,
+    maxDurationSeconds,
+    inactivityTimeoutSeconds,
     togglePause,
     toggleHandsFree,
     updateTtsConfig,

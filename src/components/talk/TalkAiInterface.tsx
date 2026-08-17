@@ -10,9 +10,13 @@ import TextChatView from './TextChatView';
 
 export type ViewTab = ChatMode | 'hub';
 
-export function TalkAiInterface() {
+interface TalkAiInterfaceProps {
+  onViewReports?: () => void;
+}
+
+export function TalkAiInterface({ onViewReports }: TalkAiInterfaceProps) {
   const [activeTab, setActiveTab] = useState<ViewTab>('hub');
-  const [selectedTopic, setSelectedTopic] = useState('IELTS Speaking Test');
+  const [selectedTopic, setSelectedTopic] = useState('Daily Casual Talk');
   const [isConnecting, setIsConnecting] = useState(false);
   const [pendingTab, setPendingTab] = useState<ChatMode>('voice');
 
@@ -44,9 +48,9 @@ export function TalkAiInterface() {
   };
 
   return (
-    <div className="h-full flex flex-col relative overflow-hidden bg-gradient-to-b from-slate-50/50 to-white/80 rounded-[2rem]">
+    <div className="h-full w-full flex flex-col relative overflow-hidden bg-gradient-to-b from-slate-50/50 to-white/80 rounded-[2rem]">
       {/* Main Tab Content Stage */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 w-full relative overflow-hidden flex flex-col">
         <AnimatePresence mode="wait">
           {/* Connecting State Modal/Overlay */}
           {isConnecting ? (
@@ -56,7 +60,7 @@ export function TalkAiInterface() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="h-full"
+              className="h-full w-full"
             >
               <ConnectingState
                 mode={pendingTab}
@@ -72,13 +76,14 @@ export function TalkAiInterface() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.25 }}
-              className="h-full"
+              className="h-full w-full flex-1 flex flex-col"
             >
               {activeTab === 'voice' && (
                 <VoiceChatView
                   topic={selectedTopic}
                   onEndCall={() => setActiveTab('hub')}
                   onSwitchMode={(mode) => handleTabChange(mode)}
+                  onViewReports={onViewReports}
                 />
               )}
 
@@ -99,7 +104,10 @@ export function TalkAiInterface() {
               )}
 
               {activeTab === 'hub' && (
-                <TalkModeSelector onSelectMode={handleSelectModeFromHub} />
+                <TalkModeSelector 
+                  onSelectMode={handleSelectModeFromHub} 
+                  onViewReports={onViewReports}
+                />
               )}
             </motion.div>
           )}

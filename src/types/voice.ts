@@ -13,6 +13,7 @@ export interface LanguageMistake {
   id?: number;
   original_text: string;
   corrected_text: string;
+  better_alternative?: string;
   explanation: string;
   native_explanation?: string;
   category: string;
@@ -54,6 +55,9 @@ export interface ConversationTurn {
 
 export interface SessionReportData {
   session_id: string;
+  topic?: string;
+  end_reason?: string;
+  turns_count?: number;
   overall_score: number;
   grammar_score: number;
   vocabulary_score: number;
@@ -65,6 +69,37 @@ export interface SessionReportData {
   recommendations: string[];
   practice_plan: string[];
   duration_seconds?: number;
+  created_at?: string;
+}
+
+export interface PracticeSessionRecord {
+  id: string;
+  title: string;
+  topic: string;
+  session_type: string;
+  correction_mode: string;
+  native_language?: string;
+  status: string;
+  max_duration_seconds: number;
+  inactivity_timeout_seconds: number;
+  end_reason?: string;
+  started_at: string;
+  ended_at?: string;
+  duration_seconds: number;
+  turns_count?: number;
+  report?: SessionReportData;
+}
+
+export interface ReportsResponse {
+  stats: {
+    total_sessions: number;
+    total_seconds: number;
+    total_minutes: number;
+    avg_overall_score: number;
+    avg_grammar_score: number;
+    avg_fluency_score: number;
+  };
+  reports: PracticeSessionRecord[];
 }
 
 export interface VoiceSocketEvent {
@@ -93,26 +128,10 @@ export interface TTSProviderConfig {
 
 export const TTS_PROVIDERS: TTSProviderConfig[] = [
   {
-    id: 'piper',
-    name: 'Piper Neural (Local / Offline)',
-    description: 'Ultra-fast local neural ONNX synthesis with zero latency',
-    badge: 'Local Neural',
-    defaultVoice: 'en_US-lessac-medium',
-    voices: [
-      { id: 'en_US-lessac-medium', name: 'Lessac (US Neutral)', accent: 'United States', flag: '🇺🇸', gender: 'Female' },
-      { id: 'en_US-amy-medium', name: 'Amy (US Expressive)', accent: 'United States', flag: '🇺🇸', gender: 'Female' },
-      { id: 'en_US-ryan-medium', name: 'Ryan (US Male)', accent: 'United States', flag: '🇺🇸', gender: 'Male' },
-      { id: 'en_GB-alan-medium', name: 'Alan (UK Male)', accent: 'United Kingdom', flag: '🇬🇧', gender: 'Male' },
-      { id: 'en_GB-jenny_dioco-medium', name: 'Jenny (UK Female)', accent: 'United Kingdom', flag: '🇬🇧', gender: 'Female' },
-      { id: 'hi_IN-pratham-medium', name: 'Pratham (Hindi / Indian)', accent: 'India (Hindi)', flag: '🇮🇳', gender: 'Male' },
-      { id: 'hi_IN-rohan-medium', name: 'Rohan (Hindi / Indian)', accent: 'India (Hindi)', flag: '🇮🇳', gender: 'Male' },
-    ],
-  },
-  {
     id: 'edge',
     name: 'Microsoft Edge Neural',
     description: 'High-definition neural speech with natural Indian voices',
-    badge: 'HD Neural',
+    badge: 'Default • HD Neural',
     defaultVoice: 'en-IN-NeerjaNeural',
     voices: [
       { id: 'en-IN-NeerjaNeural', name: 'Neerja (Indian)', accent: 'India (en-IN)', flag: '🇮🇳', gender: 'Female' },
@@ -128,7 +147,7 @@ export const TTS_PROVIDERS: TTSProviderConfig[] = [
     id: 'gtts',
     name: 'Google TTS (gTTS)',
     description: 'Ultra-reliable Google Text-to-Speech with Indian accent',
-    badge: 'Popular',
+    badge: 'Popular Fallback',
     defaultVoice: 'en-in',
     voices: [
       { id: 'en-in', name: 'Indian English', accent: 'India (en-IN)', flag: '🇮🇳', gender: 'Female' },
@@ -152,6 +171,22 @@ export const TTS_PROVIDERS: TTSProviderConfig[] = [
       { id: 'austin', name: 'Austin', accent: 'US Casual', flag: '🇺🇸', gender: 'Male' },
       { id: 'daniel', name: 'Daniel', accent: 'US Deep', flag: '🇺🇸', gender: 'Male' },
       { id: 'todd', name: 'Todd', accent: 'US Conversational', flag: '🇺🇸', gender: 'Male' },
+    ],
+  },
+  {
+    id: 'piper',
+    name: 'Piper Neural (Local / Offline)',
+    description: 'Ultra-fast local neural ONNX synthesis with zero latency',
+    badge: 'Local Neural',
+    defaultVoice: 'en_US-lessac-medium',
+    voices: [
+      { id: 'en_US-lessac-medium', name: 'Lessac (US Neutral)', accent: 'United States', flag: '🇺🇸', gender: 'Female' },
+      { id: 'en_US-amy-medium', name: 'Amy (US Expressive)', accent: 'United States', flag: '🇺🇸', gender: 'Female' },
+      { id: 'en_US-ryan-medium', name: 'Ryan (US Male)', accent: 'United States', flag: '🇺🇸', gender: 'Male' },
+      { id: 'en_GB-alan-medium', name: 'Alan (UK Male)', accent: 'United Kingdom', flag: '🇬🇧', gender: 'Male' },
+      { id: 'en_GB-jenny_dioco-medium', name: 'Jenny (UK Female)', accent: 'United Kingdom', flag: '🇬🇧', gender: 'Female' },
+      { id: 'hi_IN-pratham-medium', name: 'Pratham (Hindi / Indian)', accent: 'India (Hindi)', flag: '🇮🇳', gender: 'Male' },
+      { id: 'hi_IN-rohan-medium', name: 'Rohan (Hindi / Indian)', accent: 'India (Hindi)', flag: '🇮🇳', gender: 'Male' },
     ],
   },
   {

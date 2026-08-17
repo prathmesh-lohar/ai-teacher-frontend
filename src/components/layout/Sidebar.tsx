@@ -11,6 +11,7 @@ import {
   Users,
   Settings,
   LogOut,
+  FileText,
   LucideIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,6 +28,7 @@ const defaultMenuItems: MenuItem[] = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { id: 'profile', icon: UserCircle, label: 'My Profile' },
   { id: 'talk', icon: MessageSquare, label: 'Talk AI' },
+  { id: 'reports', icon: FileText, label: 'Reports' },
   { id: 'learn', icon: BookOpen, label: 'Learn' },
   { id: 'interview', icon: Briefcase, label: 'Interview' },
   { id: 'task', icon: CheckSquare, label: 'Task' },

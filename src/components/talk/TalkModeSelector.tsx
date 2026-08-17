@@ -25,6 +25,7 @@ export type ChatMode = 'voice' | 'video' | 'text';
 
 export interface TalkModeSelectorProps {
   onSelectMode: (mode: ChatMode, topic: string) => void;
+  onViewReports?: () => void;
 }
 
 const topics = [
@@ -34,9 +35,9 @@ const topics = [
   { id: 'business', label: 'Business English', icon: FileText, level: 'Executive' },
 ];
 
-export function TalkModeSelector({ onSelectMode }: TalkModeSelectorProps) {
-  const [selectedTopic, setSelectedTopic] = useState('IELTS Speaking Test');
-  const [activeTabTopic, setActiveTabTopic] = useState('ielts');
+export function TalkModeSelector({ onSelectMode, onViewReports }: TalkModeSelectorProps) {
+  const [selectedTopic, setSelectedTopic] = useState('Daily Casual Talk');
+  const [activeTabTopic, setActiveTabTopic] = useState('casual');
 
   const modeOptions = [
     {
@@ -171,15 +172,15 @@ export function TalkModeSelector({ onSelectMode }: TalkModeSelectorProps) {
   ];
 
   return (
-    <div className="h-full flex flex-col justify-between py-6 px-4 lg:px-8 overflow-y-auto custom-scrollbar relative">
+    <div className="h-full w-full flex flex-col justify-between py-5 px-4 sm:px-6 lg:px-8 overflow-y-auto custom-scrollbar relative">
       {/* Background Subtle Gradient Mesh Orbs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[300px] bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Hero Header Section */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center max-w-3xl mx-auto mb-8 relative z-10"
+        className="text-center w-full mb-6 relative z-10"
       >
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border border-purple-500/20 text-[var(--primary)] text-xs font-bold mb-3 shadow-xs">
           <Flame size={14} className="text-orange-500 animate-pulse" />
@@ -191,49 +192,58 @@ export function TalkModeSelector({ onSelectMode }: TalkModeSelectorProps) {
         <h1 className="text-3xl lg:text-4xl font-extrabold text-[var(--text-heading)] tracking-tight leading-tight">
           How would you like to practice today?
         </h1>
-        <p className="text-sm text-[var(--text-sub)] mt-2 max-w-xl mx-auto leading-relaxed font-medium">
+        <p className="text-sm text-[var(--text-sub)] mt-2 max-w-3xl mx-auto leading-relaxed font-medium">
           Choose your preferred AI interaction format below. You can seamlessly switch modes at any time during your practice session.
         </p>
 
-        {/* Topic Selector Bar */}
-        <div className="mt-6 p-2 bg-white/90 backdrop-blur-md rounded-2xl border border-gray-200/80 shadow-md inline-flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs font-bold text-gray-400 px-3 flex items-center gap-1.5">
-            <SlidersHorizontal size={14} className="text-[var(--primary)]" />
-            <span>Select Focus:</span>
-          </span>
+        {/* Topic Selector Bar & View Reports CTA - Full Width */}
+        <div className="mt-6 w-full flex flex-col lg:flex-row items-center justify-between gap-3">
+          <div className="p-2 bg-white/90 backdrop-blur-md rounded-2xl border border-gray-200/80 shadow-md w-full flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
+            {topics.map((t) => {
+              const Icon = t.icon;
+              const isSelected = selectedTopic === t.label;
 
-          {topics.map((t) => {
-            const Icon = t.icon;
-            const isSelected = selectedTopic === t.label;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setSelectedTopic(t.label);
+                    setActiveTabTopic(t.id);
+                  }}
+                  className={`flex items-center justify-between gap-2 text-xs font-bold py-2.5 px-4 rounded-xl transition-all cursor-pointer w-full ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] text-white shadow-md shadow-[var(--primary-soft)] scale-[1.01]'
+                      : 'bg-gray-50/80 text-gray-700 hover:bg-gray-100 hover:text-black border border-gray-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Icon size={15} className="shrink-0" />
+                    <span className="truncate">{t.label}</span>
+                  </div>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase shrink-0 ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-gray-200/60 text-gray-500'
+                  }`}>
+                    {t.level}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-            return (
-              <button
-                key={t.id}
-                onClick={() => {
-                  setSelectedTopic(t.label);
-                  setActiveTabTopic(t.id);
-                }}
-                className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] text-white shadow-md shadow-[var(--primary-soft)] scale-105'
-                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-black border border-gray-100'
-                }`}
-              >
-                <Icon size={14} />
-                <span>{t.label}</span>
-                <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase ${
-                  isSelected ? 'bg-white/20 text-white' : 'bg-gray-200/60 text-gray-500'
-                }`}>
-                  {t.level}
-                </span>
-              </button>
-            );
-          })}
+          {onViewReports && (
+            <button
+              onClick={onViewReports}
+              className="p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer hover:shadow-md shrink-0 w-full lg:w-auto px-5"
+            >
+              <FileText size={16} />
+              <span>View Past Reports</span>
+            </button>
+          )}
         </div>
       </motion.div>
 
-      {/* 3 Interactive Mode Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 max-w-7xl mx-auto w-full my-auto relative z-10">
+      {/* 3 Interactive Mode Cards Grid - Full Width */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 w-full my-auto relative z-10">
         {modeOptions.map((mode, index) => {
           const Icon = mode.icon;
 
@@ -244,7 +254,7 @@ export function TalkModeSelector({ onSelectMode }: TalkModeSelectorProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: index * 0.12 }}
               onClick={() => onSelectMode(mode.id, selectedTopic)}
-              className={`group relative bg-white/95 backdrop-blur-xl rounded-[2rem] p-6 lg:p-7 border border-gray-200/80 shadow-md hover:shadow-2xl ${mode.borderHover} transition-all duration-300 flex flex-col justify-between cursor-pointer overflow-hidden transform hover:-translate-y-1.5`}
+              className={`group relative bg-white/95 backdrop-blur-xl rounded-[2rem] p-6 lg:p-7 border border-gray-200/80 shadow-md hover:shadow-2xl ${mode.borderHover} transition-all duration-300 flex flex-col justify-between cursor-pointer overflow-hidden transform hover:-translate-y-1.5 w-full`}
             >
               {/* Card Top: Live Widget & Header */}
               <div>
@@ -300,12 +310,12 @@ export function TalkModeSelector({ onSelectMode }: TalkModeSelectorProps) {
         })}
       </div>
 
-      {/* Bottom Status Bar */}
+      {/* Bottom Status Bar - Full Width */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
-        className="mt-8 pt-4 border-t border-gray-200/60 max-w-5xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 font-semibold gap-3 relative z-10"
+        className="mt-6 pt-4 border-t border-gray-200/60 w-full flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 font-semibold gap-3 relative z-10"
       >
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -328,3 +338,4 @@ export function TalkModeSelector({ onSelectMode }: TalkModeSelectorProps) {
 }
 
 export default TalkModeSelector;
+
