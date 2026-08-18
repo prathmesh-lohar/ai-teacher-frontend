@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TalkModeSelector, { ChatMode } from './TalkModeSelector';
 import ConnectingState from './ConnectingState';
@@ -12,13 +12,37 @@ export type ViewTab = ChatMode | 'hub';
 
 interface TalkAiInterfaceProps {
   onViewReports?: () => void;
+  initialTopic?: string;
+  initialMode?: ChatMode | 'hub';
+  launchTrigger?: number;
 }
 
-export function TalkAiInterface({ onViewReports }: TalkAiInterfaceProps) {
-  const [activeTab, setActiveTab] = useState<ViewTab>('hub');
-  const [selectedTopic, setSelectedTopic] = useState('Daily Casual Talk');
+export function TalkAiInterface({
+  onViewReports,
+  initialTopic,
+  initialMode = 'hub',
+  launchTrigger = 0,
+}: TalkAiInterfaceProps) {
+  const [activeTab, setActiveTab] = useState<ViewTab>(initialMode);
+  const [selectedTopic, setSelectedTopic] = useState<string>(initialTopic || 'Daily Casual Talk');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [pendingTab, setPendingTab] = useState<ChatMode>('voice');
+  const [pendingTab, setPendingTab] = useState<ChatMode>(
+    initialMode && initialMode !== 'hub' ? initialMode : 'voice'
+  );
+
+  // Sync state whenever external launchTrigger fires or initial props change
+  useEffect(() => {
+    if (launchTrigger > 0 || (initialMode && initialMode !== 'hub')) {
+      if (initialTopic) {
+        setSelectedTopic(initialTopic);
+      }
+      if (initialMode && initialMode !== 'hub') {
+        setPendingTab(initialMode);
+        setActiveTab(initialMode);
+        setIsConnecting(false);
+      }
+    }
+  }, [launchTrigger, initialTopic, initialMode]);
 
   const handleTabChange = (tab: ViewTab) => {
     if (tab === 'hub') {
@@ -55,7 +79,7 @@ export function TalkAiInterface({ onViewReports }: TalkAiInterfaceProps) {
           {/* Connecting State Modal/Overlay */}
           {isConnecting ? (
             <motion.div
-              key="connecting"
+              key={`connecting-${pendingTab}-${selectedTopic}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -71,7 +95,7 @@ export function TalkAiInterface({ onViewReports }: TalkAiInterfaceProps) {
             </motion.div>
           ) : (
             <motion.div
-              key={activeTab}
+              key={`${activeTab}-${selectedTopic}-${launchTrigger}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -80,6 +104,7 @@ export function TalkAiInterface({ onViewReports }: TalkAiInterfaceProps) {
             >
               {activeTab === 'voice' && (
                 <VoiceChatView
+                  key={`voice-${selectedTopic}-${launchTrigger}`}
                   topic={selectedTopic}
                   onEndCall={() => setActiveTab('hub')}
                   onSwitchMode={(mode) => handleTabChange(mode)}
@@ -89,6 +114,7 @@ export function TalkAiInterface({ onViewReports }: TalkAiInterfaceProps) {
 
               {activeTab === 'video' && (
                 <VideoChatView
+                  key={`video-${selectedTopic}-${launchTrigger}`}
                   topic={selectedTopic}
                   onEndCall={() => setActiveTab('hub')}
                   onSwitchMode={(mode) => handleTabChange(mode)}
@@ -97,6 +123,7 @@ export function TalkAiInterface({ onViewReports }: TalkAiInterfaceProps) {
 
               {activeTab === 'text' && (
                 <TextChatView
+                  key={`text-${selectedTopic}-${launchTrigger}`}
                   topic={selectedTopic}
                   onSwitchMode={(mode) => handleTabChange(mode)}
                   onBackToSelector={() => setActiveTab('hub')}
@@ -119,5 +146,3 @@ export function TalkAiInterface({ onViewReports }: TalkAiInterfaceProps) {
 }
 
 export default TalkAiInterface;
-
-

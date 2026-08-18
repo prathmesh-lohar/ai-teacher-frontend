@@ -13,6 +13,7 @@ import LessonsTable from '@/components/dashboard/LessonsTable';
 import TalkAiInterface from '@/components/talk/TalkAiInterface';
 import ProfileModule from '@/components/profile/ProfileModule';
 import ReportsModule from '@/components/reports/ReportsModule';
+import { LearnModule } from '@/components/learn/LearnModule';
 import ApprovalPending from '@/components/auth/ApprovalPending';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/common/Button';
@@ -21,6 +22,18 @@ export default function Home() {
   const router = useRouter();
   const { user, loading, isAuthenticated, isApproved } = useAuth();
   const [currentTab, setTab] = useState('dashboard');
+  const [talkTopic, setTalkTopic] = useState<string>('Daily Casual Talk');
+  const [talkMode, setTalkMode] = useState<'voice' | 'text' | 'video' | 'hub'>('hub');
+  const [talkLaunchTrigger, setTalkLaunchTrigger] = useState<number>(0);
+
+  const handleStartPractice = (topic?: string, mode: 'voice' | 'text' = 'voice') => {
+    if (topic) {
+      setTalkTopic(topic);
+    }
+    setTalkMode(mode);
+    setTalkLaunchTrigger((prev) => prev + 1);
+    setTab('talk');
+  };
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -84,10 +97,10 @@ export default function Home() {
                 transition={{ duration: 0.3 }}
                 className="space-y-8 py-4"
               >
-                <HeroBanner onStart={() => setTab('talk')} />
+                <HeroBanner onStart={() => handleStartPractice('Daily Casual Talk', 'voice')} />
                 <ProgressCards onCardClick={() => setTab('learn')} />
-                <ContinueLearning onSelectCourse={() => setTab('talk')} />
-                <LessonsTable onActionClick={() => setTab('talk')} />
+                <ContinueLearning onSelectCourse={() => handleStartPractice('Conversational English', 'voice')} />
+                <LessonsTable onActionClick={() => handleStartPractice('Business Discussion', 'voice')} />
               </motion.div>
             )}
 
@@ -115,7 +128,12 @@ export default function Home() {
                 transition={{ duration: 0.3 }}
                 className="h-full w-full flex-1 flex flex-col"
               >
-                <TalkAiInterface onViewReports={() => setTab('reports')} />
+                <TalkAiInterface
+                  onViewReports={() => setTab('reports')}
+                  initialTopic={talkTopic}
+                  initialMode={talkMode}
+                  launchTrigger={talkLaunchTrigger}
+                />
               </motion.div>
             )}
 
@@ -129,12 +147,26 @@ export default function Home() {
                 transition={{ duration: 0.3 }}
                 className="py-4 h-full"
               >
-                <ReportsModule onStartPractice={() => setTab('talk')} />
+                <ReportsModule onStartPractice={(t) => handleStartPractice(t, 'voice')} />
+              </motion.div>
+            )}
+
+            {/* Learn Module */}
+            {currentTab === 'learn' && (
+              <motion.div
+                key="learn"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3 }}
+                className="py-4 h-full"
+              >
+                <LearnModule onStartPractice={handleStartPractice} />
               </motion.div>
             )}
 
             {/* Module Development Placeholder for other tabs */}
-            {currentTab !== 'dashboard' && currentTab !== 'talk' && currentTab !== 'profile' && currentTab !== 'reports' && (
+            {currentTab !== 'dashboard' && currentTab !== 'talk' && currentTab !== 'profile' && currentTab !== 'reports' && currentTab !== 'learn' && (
               <motion.div
                 key="placeholder"
                 initial={{ opacity: 0, y: 15 }}
