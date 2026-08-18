@@ -75,6 +75,13 @@ export class VoiceWebSocketService {
     }
   }
 
+  public sendTextMessage(text: string) {
+    this.send({
+      type: 'user.text',
+      text: text.trim(),
+    });
+  }
+
   public sendAudioBlob(blob: Blob) {
     const reader = new FileReader();
     reader.onloadend = () => {

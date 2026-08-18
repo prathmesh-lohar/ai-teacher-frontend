@@ -100,6 +100,7 @@ export function TalkAiInterface({ onViewReports }: TalkAiInterfaceProps) {
                   topic={selectedTopic}
                   onSwitchMode={(mode) => handleTabChange(mode)}
                   onBackToSelector={() => setActiveTab('hub')}
+                  onViewReports={onViewReports}
                 />
               )}
 

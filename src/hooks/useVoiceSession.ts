@@ -24,6 +24,7 @@ export interface UserSessionContext {
 
 interface UseVoiceSessionProps {
   topic?: string;
+  sessionType?: string;
   correctionMode?: CorrectionMode;
   autoStart?: boolean;
   autoTurnEnabled?: boolean;
@@ -35,6 +36,7 @@ interface UseVoiceSessionProps {
 
 export function useVoiceSession({
   topic = 'Daily Casual Talk',
+  sessionType = 'voice',
   correctionMode = 'realtime',
   autoStart = true,
   autoTurnEnabled = true,
@@ -322,6 +324,7 @@ export function useVoiceSession({
         socket.send({
           type: 'session.start',
           topic,
+          session_type: sessionType,
           correction_mode: correctionMode,
           native_language: nativeLangRef.current,
           tts_provider: ttsConfigRef.current.provider,
@@ -341,7 +344,7 @@ export function useVoiceSession({
       recorder.cleanup();
       socket.disconnect();
     };
-  }, [topic, correctionMode, autoStart, handleBargeIn]);
+  }, [topic, sessionType, correctionMode, autoStart, handleBargeIn]);
 
   // Real-time switch TTS provider / voice
   const updateTtsConfig = useCallback((newProvider: TTSProviderId, newVoice: string) => {
@@ -450,6 +453,20 @@ export function useVoiceSession({
     });
   }, []);
 
+  // Send Text Message for Chat Tutor Mode
+  const sendTextMessage = useCallback((text: string) => {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return;
+
+    playerRef.current?.interrupt();
+    isAiSpeakingRef.current = false;
+    setState('user_processing');
+
+    if (socketServiceRef.current) {
+      socketServiceRef.current.sendTextMessage(trimmed);
+    }
+  }, []);
+
   // End session and request report
   const endSession = useCallback((endReason: string = 'completed') => {
     playerRef.current?.interrupt();
@@ -482,6 +499,7 @@ export function useVoiceSession({
     updateNativeLanguage,
     startSpeaking,
     stopSpeaking,
+    sendTextMessage,
     interruptAi,
     endSession,
   };
