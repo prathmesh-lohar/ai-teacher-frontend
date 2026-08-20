@@ -12,6 +12,7 @@ import {
 import { VoiceWebSocketService } from '@/services/websocket/voiceSocket';
 import { AudioQueuePlayer } from '@/audio/player';
 import { AudioRecorder } from '@/audio/recorder';
+import { getStoredTokens } from '@/services/api';
 
 export interface UserSessionContext {
   name?: string;
@@ -321,6 +322,7 @@ export function useVoiceSession({
       const connected = await socket.connect(sessionId);
       if (connected) {
         setIsConnected(true);
+        const { access } = getStoredTokens();
         socket.send({
           type: 'session.start',
           topic,
@@ -330,6 +332,7 @@ export function useVoiceSession({
           tts_provider: ttsConfigRef.current.provider,
           tts_voice: ttsConfigRef.current.voice,
           user_context: userContextRef.current,
+          token: access || undefined,
         });
       }
     };

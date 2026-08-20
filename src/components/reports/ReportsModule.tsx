@@ -21,6 +21,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { apiFetch } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 import { PracticeSessionRecord, ReportsResponse, SessionReportData, ConversationTurn } from '@/types/voice';
 import { speechPlayer } from '@/audio/speechPlayer';
 import { Button } from '@/components/common/Button';
@@ -31,6 +32,7 @@ interface ReportsModuleProps {
 }
 
 export function ReportsModule({ onStartPractice }: ReportsModuleProps) {
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [reports, setReports] = useState<PracticeSessionRecord[]>([]);
   const [stats, setStats] = useState<ReportsResponse['stats']>({
     total_sessions: 0,
@@ -57,23 +59,38 @@ export function ReportsModule({ onStartPractice }: ReportsModuleProps) {
   const [playingTurnId, setPlayingTurnId] = useState<number | null>(null);
 
   const fetchReports = async () => {
+    if (!isAuthenticated) {
+      setReports([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const data = await apiFetch<ReportsResponse>('/api/ai/reports/');
       if (data && data.reports) {
         setReports(data.reports);
         if (data.stats) setStats(data.stats);
+      } else {
+        setReports([]);
       }
     } catch (err) {
       console.warn('Failed to fetch reports:', err);
+      setReports([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchReports();
-  }, []);
+    if (!authLoading) {
+      if (isAuthenticated) {
+        fetchReports();
+      } else {
+        setLoading(false);
+        setReports([]);
+      }
+    }
+  }, [isAuthenticated, authLoading]);
 
   // Fetch full report & transcript details when a session is selected
   const handleSelectReport = async (sessionId: string) => {
@@ -162,6 +179,30 @@ export function ReportsModule({ onStartPractice }: ReportsModuleProps) {
 
     return matchesSearch && matchesTopic && matchesScore;
   });
+
+  if (!authLoading && !isAuthenticated) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center max-w-md mx-auto py-16 px-4 text-center space-y-4">
+        <div className="w-16 h-16 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-sm">
+          <FileText size={32} />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900">Sign In to View Your Reports</h3>
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Please log in to your account to view your personal speech practice history, CEFR performance scores, and conversation feedback.
+        </p>
+        <Button
+          variant="primary"
+          size="md"
+          onClick={() => {
+            if (typeof window !== 'undefined') window.location.href = '/login';
+          }}
+          className="mt-2"
+        >
+          Go to Sign In
+        </Button>
+      </div>
+    );
+  }
 
   // If a report is selected, render the dedicated full-page Report & Transcript View!
   if (selectedSessionId) {
@@ -326,7 +367,7 @@ export function ReportsModule({ onStartPractice }: ReportsModuleProps) {
             <h3 className="text-lg font-bold text-gray-800">No practice reports found</h3>
             <p className="text-xs text-gray-500 max-w-md mx-auto leading-relaxed">
               {reports.length === 0
-                ? 'You have not completed any AI voice practice sessions yet. Start a 5-minute conversation to receive instant diagnostic reports.'
+                ? `${user?.first_name || user?.username || 'You'} have not completed any AI voice practice sessions yet. Start a conversation to receive instant diagnostic reports.`
                 : 'No reports matched your search filters. Try adjusting your search query.'}
             </p>
             {onStartPractice && (
