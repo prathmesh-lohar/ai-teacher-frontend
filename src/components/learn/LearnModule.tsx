@@ -25,6 +25,9 @@ import { Button } from '@/components/common/Button';
 
 interface LearnModuleProps {
   onStartPractice?: (topic?: string, mode?: 'voice' | 'text') => void;
+  initialModuleId?: number | null;
+  initialTutorialId?: number | null;
+  onClearInitialSelection?: () => void;
 }
 
 const CATEGORY_TABS: { id: LearningCategory; label: string; icon: any }[] = [
@@ -35,7 +38,12 @@ const CATEGORY_TABS: { id: LearningCategory; label: string; icon: any }[] = [
   { id: 'pronunciation', label: 'Pronunciation', icon: Sparkles },
 ];
 
-export function LearnModule({ onStartPractice }: LearnModuleProps) {
+export function LearnModule({ 
+  onStartPractice, 
+  initialModuleId, 
+  initialTutorialId,
+  onClearInitialSelection 
+}: LearnModuleProps) {
   const [modules, setModules] = useState<LearningModule[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<LearningCategory>('all');
@@ -46,6 +54,40 @@ export function LearnModule({ onStartPractice }: LearnModuleProps) {
   const [activeModuleDetail, setActiveModuleDetail] = useState<LearningModuleDetail | null>(null);
   const [activeTutorial, setActiveTutorial] = useState<Tutorial | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  useEffect(() => {
+    if (!initialModuleId) {
+      setActiveModuleDetail(null);
+      setActiveTutorial(null);
+      return;
+    }
+
+    let isMounted = true;
+    const loadInitial = async () => {
+      try {
+        setLoadingDetail(true);
+        const detail = await getLearningModuleDetail(initialModuleId);
+        if (isMounted) {
+          setActiveModuleDetail(detail);
+          if (initialTutorialId) {
+            const found = detail.tutorials.find((t) => t.id === initialTutorialId);
+            setActiveTutorial(found || null);
+          } else {
+            setActiveTutorial(null);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load initial module detail:', err);
+      } finally {
+        if (isMounted) setLoadingDetail(false);
+      }
+    };
+
+    loadInitial();
+    return () => {
+      isMounted = false;
+    };
+  }, [initialModuleId, initialTutorialId]);
 
   const fetchModules = async () => {
     try {
@@ -151,6 +193,7 @@ export function LearnModule({ onStartPractice }: LearnModuleProps) {
           // Go back to Level 1 (All Topics)
           setActiveModuleDetail(null);
           setActiveTutorial(null);
+          onClearInitialSelection?.();
         }}
         onSelectTutorial={handleSelectTutorial}
       />

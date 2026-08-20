@@ -42,6 +42,20 @@ export async function toggleTutorialCompleted(tutorialId: number): Promise<{
   });
 }
 
+export async function getTutorials(params?: { category?: string; limit?: number }): Promise<Tutorial[]> {
+  const queryParams = new URLSearchParams();
+  if (params?.category && params.category !== 'all') {
+    queryParams.append('category', params.category);
+  }
+  if (params?.limit) {
+    queryParams.append('limit', params.limit.toString());
+  }
+
+  const queryStr = queryParams.toString();
+  const endpoint = `/api/learning/tutorials/${queryStr ? `?${queryStr}` : ''}`;
+  return apiFetch<Tutorial[]>(endpoint);
+}
+
 export async function getLearningStats(): Promise<LearningStats> {
   return apiFetch<LearningStats>('/api/learning/stats/');
 }

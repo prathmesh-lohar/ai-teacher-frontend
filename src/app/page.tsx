@@ -25,6 +25,8 @@ export default function Home() {
   const [talkTopic, setTalkTopic] = useState<string>('Daily Casual Talk');
   const [talkMode, setTalkMode] = useState<'voice' | 'text' | 'video' | 'hub'>('hub');
   const [talkLaunchTrigger, setTalkLaunchTrigger] = useState<number>(0);
+  const [selectedLearnModuleId, setSelectedLearnModuleId] = useState<number | null>(null);
+  const [selectedLearnTutorialId, setSelectedLearnTutorialId] = useState<number | null>(null);
 
   const handleStartPractice = (topic?: string, mode: 'voice' | 'text' = 'voice') => {
     if (topic) {
@@ -33,6 +35,18 @@ export default function Home() {
     setTalkMode(mode);
     setTalkLaunchTrigger((prev) => prev + 1);
     setTab('talk');
+  };
+
+  const handleOpenLearnCourse = (moduleId: number, tutorialId?: number) => {
+    setSelectedLearnModuleId(moduleId);
+    setSelectedLearnTutorialId(tutorialId || null);
+    setTab('learn');
+  };
+
+  const handleOpenAllTopics = () => {
+    setSelectedLearnModuleId(null);
+    setSelectedLearnTutorialId(null);
+    setTab('learn');
   };
 
   useEffect(() => {
@@ -79,7 +93,16 @@ export default function Home() {
   return (
     <div className="flex h-screen w-screen bg-[var(--primary-bg)] overflow-hidden selection:bg-[var(--primary-soft)] p-2 lg:p-4 gap-4">
       {/* Desktop Sidebar */}
-      <Sidebar currentTab={currentTab} setTab={setTab} />
+      <Sidebar 
+        currentTab={currentTab} 
+        setTab={(tab) => {
+          if (tab === 'learn') {
+            handleOpenAllTopics();
+          } else {
+            setTab(tab);
+          }
+        }} 
+      />
 
       {/* Main Content Workspace Area (Full Width) */}
       <main className="flex-1 flex flex-col min-w-0 transition-all duration-500 overflow-hidden relative glass-card rounded-[24px]">
@@ -97,10 +120,15 @@ export default function Home() {
                 transition={{ duration: 0.3 }}
                 className="space-y-8 py-4"
               >
-                <HeroBanner onStart={() => handleStartPractice('Daily Casual Talk', 'voice')} />
-                <ProgressCards onCardClick={() => setTab('learn')} />
-                <ContinueLearning onSelectCourse={() => handleStartPractice('Conversational English', 'voice')} />
-                <LessonsTable onActionClick={() => handleStartPractice('Business Discussion', 'voice')} />
+                <HeroBanner onStart={(t) => handleStartPractice(t || 'Daily Casual Talk', 'voice')} />
+                <ProgressCards onCardClick={() => handleOpenAllTopics()} />
+                <ContinueLearning 
+                  onSelectCourse={(module) => handleOpenLearnCourse(module.id)} 
+                  onSeeAll={handleOpenAllTopics}
+                />
+                <LessonsTable 
+                  onActionClick={(tutorial) => handleOpenLearnCourse(tutorial.module, tutorial.id)} 
+                />
               </motion.div>
             )}
 
@@ -161,7 +189,15 @@ export default function Home() {
                 transition={{ duration: 0.3 }}
                 className="py-4 h-full"
               >
-                <LearnModule onStartPractice={handleStartPractice} />
+                <LearnModule 
+                  onStartPractice={handleStartPractice}
+                  initialModuleId={selectedLearnModuleId}
+                  initialTutorialId={selectedLearnTutorialId}
+                  onClearInitialSelection={() => {
+                    setSelectedLearnModuleId(null);
+                    setSelectedLearnTutorialId(null);
+                  }}
+                />
               </motion.div>
             )}
 
@@ -208,7 +244,7 @@ export default function Home() {
             <LayoutDashboard size={24} />
           </button>
           <button 
-            onClick={() => setTab('learn')} 
+            onClick={handleOpenAllTopics} 
             aria-label="Learn"
             className={currentTab === 'learn' ? 'text-[var(--primary)]' : 'text-[var(--text-sub)]'}
           >

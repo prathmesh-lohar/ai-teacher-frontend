@@ -13,6 +13,7 @@ export interface Tutorial {
   module: number;
   module_title: string;
   module_category: string;
+  module_category_display?: string;
   title: string;
   slug: string;
   video_url: string;
@@ -51,10 +52,21 @@ export interface LearningModuleDetail extends LearningModule {
   updated_at: string;
 }
 
+export interface CategoryStatItem {
+  key: string;
+  label: string;
+  total: number;
+  completed: number;
+}
+
 export interface LearningStats {
   total_modules: number;
   total_tutorials: number;
   completed_tutorials: number;
   speaking_tutorials_count: number;
   interview_tutorials_count: number;
+  business_tutorials_count?: number;
+  pronunciation_tutorials_count?: number;
+  grammar_tutorials_count?: number;
+  categories?: Record<string, CategoryStatItem>;
 }

@@ -18,7 +18,8 @@ import {
   Cpu,
   Radio,
   SlidersHorizontal,
-  Flame
+  Flame,
+  Lock
 } from 'lucide-react';
 
 export type ChatMode = 'voice' | 'video' | 'text';
@@ -89,52 +90,7 @@ export function TalkModeSelector({ onSelectMode, onViewReports }: TalkModeSelect
         </div>
       ),
     },
-    {
-      id: 'video' as ChatMode,
-      title: 'Video Chat with AI',
-      subtitle: 'HD Face-to-Face Mentor Stream',
-      description: 'Interactive video call with a lifelike AI Video Mentor, featuring live WebRTC webcam preview and lip-sync expression analysis.',
-      icon: Video,
-      badge: '🎥 1080p HD',
-      badgeClass: 'bg-purple-500/10 text-purple-600 border-purple-200/60',
-      gradient: 'from-purple-600 via-indigo-600 to-pink-500',
-      borderHover: 'hover:border-purple-400/80 hover:shadow-purple-500/15',
-      glowColor: 'bg-purple-500/10',
-      btnGradient: 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-purple-500/30',
-      tagColor: 'text-purple-600 bg-purple-50',
-      features: [
-        '3D Animated AI Mentor Avatar',
-        'Live WebRTC webcam PiP preview',
-        'Pronunciation & posture HUD',
-      ],
-      // Simulated live video preview inside card header
-      previewWidget: (
-        <div className="w-full h-24 bg-gradient-to-br from-purple-950 to-slate-950 rounded-2xl p-3 flex items-center justify-between border border-purple-500/20 relative overflow-hidden group-hover:border-purple-400/40 transition-colors">
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="w-10 h-10 rounded-full bg-purple-500/20 border border-purple-400/40 overflow-hidden flex items-center justify-center">
-              <img 
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&style=circle" 
-                alt="AI Video Mentor" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <p className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                <span>AI Mentor Sarah</span>
-                <span className="text-[9px] bg-purple-500/30 text-purple-300 font-bold px-1.5 py-0.5 rounded border border-purple-400/30">HD 60fps</span>
-              </p>
-              <p className="text-[9px] text-purple-200/80 font-mono">Facial HUD: Active</p>
-            </div>
-          </div>
-          {/* PiP Mini Cam frame */}
-          <div className="w-10 h-12 rounded-lg bg-slate-900 border border-purple-400/50 flex flex-col items-center justify-center text-purple-300 text-[8px] font-bold relative z-10 shadow-md">
-            <Camera size={14} className="mb-0.5" />
-            <span>YOU</span>
-          </div>
-          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-500/20 rounded-full blur-xl pointer-events-none" />
-        </div>
-      ),
-    },
+   
     {
       id: 'text' as ChatMode,
       title: 'Text Chat with AI',
@@ -166,6 +122,54 @@ export function TalkModeSelector({ onSelectMode, onViewReports }: TalkModeSelect
             <span className="text-emerald-400 font-bold">Suggested:</span> "I aim to concentrate" instead of "I want to focus".
           </div>
           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/20 rounded-full blur-xl pointer-events-none" />
+        </div>
+      ),
+    },
+
+    {
+      id: 'video' as ChatMode,
+      title: 'Video Chat with AI',
+      subtitle: 'HD Face-to-Face Mentor Stream',
+      description: 'Interactive video call with a lifelike AI Video Mentor, featuring live WebRTC webcam preview and lip-sync expression analysis.',
+      icon: Video,
+      badge: '🚀 Coming Soon',
+      badgeClass: 'bg-amber-500/15 text-amber-700 border-amber-300/80 font-black',
+      gradient: 'from-purple-600 via-indigo-600 to-pink-500',
+      borderHover: 'hover:border-amber-300/80 hover:shadow-amber-500/10',
+      glowColor: 'bg-amber-500/10',
+      btnGradient: 'bg-gray-200 text-gray-400 cursor-not-allowed',
+      tagColor: 'text-purple-600 bg-purple-50',
+      isComingSoon: true,
+      features: [
+        '3D Animated AI Mentor Avatar',
+        'Live WebRTC webcam PiP preview',
+        'Pronunciation & posture HUD',
+      ],
+      // Simulated live video preview inside card header
+      previewWidget: (
+        <div className="w-full h-24 bg-gradient-to-br from-purple-950 to-slate-950 rounded-2xl p-3 flex items-center justify-between border border-purple-500/20 relative overflow-hidden group-hover:border-purple-400/40 transition-colors">
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-full bg-purple-500/20 border border-purple-400/40 overflow-hidden flex items-center justify-center">
+              <img 
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&style=circle" 
+                alt="AI Video Mentor" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                <span>AI Mentor Sarah</span>
+                <span className="text-[9px] bg-purple-500/30 text-purple-300 font-bold px-1.5 py-0.5 rounded border border-purple-400/30">HD 60fps</span>
+              </p>
+              <p className="text-[9px] text-purple-200/80 font-mono">Facial HUD: Preview Mode</p>
+            </div>
+          </div>
+          {/* PiP Mini Cam frame */}
+          <div className="w-10 h-12 rounded-lg bg-slate-900 border border-purple-400/50 flex flex-col items-center justify-center text-purple-300 text-[8px] font-bold relative z-10 shadow-md">
+            <Camera size={14} className="mb-0.5" />
+            <span>YOU</span>
+          </div>
+          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-500/20 rounded-full blur-xl pointer-events-none" />
         </div>
       ),
     },
@@ -246,6 +250,7 @@ export function TalkModeSelector({ onSelectMode, onViewReports }: TalkModeSelect
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 w-full my-auto relative z-10">
         {modeOptions.map((mode, index) => {
           const Icon = mode.icon;
+          const isComingSoon = Boolean((mode as any).isComingSoon);
 
           return (
             <motion.div
@@ -253,8 +258,16 @@ export function TalkModeSelector({ onSelectMode, onViewReports }: TalkModeSelect
               initial={{ opacity: 0, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: index * 0.12 }}
-              onClick={() => onSelectMode(mode.id, selectedTopic)}
-              className={`group relative bg-white/95 backdrop-blur-xl rounded-[2rem] p-6 lg:p-7 border border-gray-200/80 shadow-md hover:shadow-2xl ${mode.borderHover} transition-all duration-300 flex flex-col justify-between cursor-pointer overflow-hidden transform hover:-translate-y-1.5 w-full`}
+              onClick={() => {
+                if (!isComingSoon) {
+                  onSelectMode(mode.id, selectedTopic);
+                }
+              }}
+              className={`group relative bg-white/95 backdrop-blur-xl rounded-[2rem] p-6 lg:p-7 border border-gray-200/80 shadow-md ${
+                isComingSoon 
+                  ? 'opacity-85 cursor-not-allowed hover:border-amber-200' 
+                  : `hover:shadow-2xl ${mode.borderHover} cursor-pointer transform hover:-translate-y-1.5`
+              } transition-all duration-300 flex flex-col justify-between overflow-hidden w-full`}
             >
               {/* Card Top: Live Widget & Header */}
               <div>
@@ -285,7 +298,7 @@ export function TalkModeSelector({ onSelectMode, onViewReports }: TalkModeSelect
                 <div className="space-y-2.5 py-4 my-4 border-t border-b border-gray-100">
                   {mode.features.map((feat, fIdx) => (
                     <div key={fIdx} className="flex items-center gap-2 text-xs text-gray-700 font-semibold">
-                      <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+                      <CheckCircle2 size={15} className={isComingSoon ? "text-amber-500 shrink-0" : "text-emerald-500 shrink-0"} />
                       <span>{feat}</span>
                     </div>
                   ))}
@@ -294,13 +307,23 @@ export function TalkModeSelector({ onSelectMode, onViewReports }: TalkModeSelect
 
               {/* Card Action CTA Button */}
               <div className="mt-2 pt-2">
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  className={`w-full flex items-center justify-center gap-2 text-xs font-extrabold text-white py-3.5 px-5 rounded-2xl ${mode.btnGradient} shadow-lg transition-all group-hover:shadow-xl`}
-                >
-                  <span>Connect to {mode.id.toUpperCase()} Studio</span>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </motion.button>
+                {isComingSoon ? (
+                  <button
+                    disabled
+                    className="w-full flex items-center justify-center gap-2 text-xs font-extrabold text-amber-800/80 bg-amber-50/80 border border-amber-200/80 py-3.5 px-5 rounded-2xl cursor-not-allowed shadow-none"
+                  >
+                    <Lock size={14} className="text-amber-600" />
+                    <span>Coming Soon (v3.2)</span>
+                  </button>
+                ) : (
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    className={`w-full flex items-center justify-center gap-2 text-xs font-extrabold text-white py-3.5 px-5 rounded-2xl ${mode.btnGradient} shadow-lg transition-all group-hover:shadow-xl cursor-pointer`}
+                  >
+                    <span>Connect to {mode.id.toUpperCase()} Studio</span>
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </motion.button>
+                )}
               </div>
 
               {/* Decorative Subtle Glowing Corner Orb */}

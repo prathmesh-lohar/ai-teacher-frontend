@@ -180,7 +180,7 @@ export function ReportsModule({ onStartPractice }: ReportsModuleProps) {
   return (
     <div className="h-full flex flex-col space-y-6 max-w-7xl mx-auto py-2">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 sm:p-8 rounded-[2rem] shadow-xl relative overflow-hidden shrink-0">
+      {/* <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 sm:p-8 rounded-[2rem] shadow-xl relative overflow-hidden shrink-0">
         <div className="relative z-10 space-y-2">
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 rounded-full bg-blue-500/30 border border-blue-400/40 text-blue-300 text-xs font-extrabold uppercase tracking-wider">
@@ -210,9 +210,9 @@ export function ReportsModule({ onStartPractice }: ReportsModuleProps) {
           )}
         </div>
 
-        {/* Ambient glow */}
+       
         <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
-      </div>
+      </div> */}
 
       {/* Analytics Overview Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">

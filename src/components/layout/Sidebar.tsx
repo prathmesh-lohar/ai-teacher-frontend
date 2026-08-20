@@ -26,13 +26,14 @@ export interface MenuItem {
 
 const defaultMenuItems: MenuItem[] = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { id: 'profile', icon: UserCircle, label: 'My Profile' },
+  // { id: 'profile', icon: UserCircle, label: 'My Profile' },
   { id: 'talk', icon: MessageSquare, label: 'Talk AI' },
-  { id: 'reports', icon: FileText, label: 'Reports' },
   { id: 'learn', icon: BookOpen, label: 'Learn' },
-  { id: 'interview', icon: Briefcase, label: 'Interview' },
-  { id: 'task', icon: CheckSquare, label: 'Task' },
-  { id: 'group', icon: Users, label: 'Group' },
+  { id: 'reports', icon: FileText, label: 'Reports' },
+
+  // { id: 'interview', icon: Briefcase, label: 'Interview' },
+  // { id: 'task', icon: CheckSquare, label: 'Task' },
+  // { id: 'group', icon: Users, label: 'Group' },
 ];
 
 interface SidebarProps {
@@ -119,13 +120,13 @@ export function Sidebar({ currentTab, setTab, menuItems = defaultMenuItems }: Si
 
       {/* Sidebar Footer Controls */}
       <div className="pt-3 border-t border-gray-100 flex flex-col gap-1">
-        <button 
+        {/* <button 
           onClick={() => setTab('profile')}
           className={cn("sidebar-item text-left w-full cursor-pointer", currentTab === 'profile' && "active")}
         >
           <Settings size={18} className="text-[var(--text-sub)]" />
           <span className="text-sm">Account Settings</span>
-        </button>
+        </button> */}
         <button 
           onClick={logout}
           className="sidebar-item text-left w-full text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
