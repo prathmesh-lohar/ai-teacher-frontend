@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  MessageSquare, 
-  UserCircle, 
-  Briefcase, 
-  CheckSquare, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  MessageSquare,
+  UserCircle,
+  Briefcase,
+  CheckSquare,
   Users,
   Settings,
   LogOut,
@@ -27,11 +27,11 @@ export interface MenuItem {
 const defaultMenuItems: MenuItem[] = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   // { id: 'profile', icon: UserCircle, label: 'My Profile' },
-  { id: 'talk', icon: MessageSquare, label: 'Talk AI' },
   { id: 'learn', icon: BookOpen, label: 'Learn' },
+  { id: 'talk', icon: MessageSquare, label: 'Talk AI' },
+  { id: 'interview', icon: Briefcase, label: 'Interview' },
   { id: 'reports', icon: FileText, label: 'Reports' },
 
-  // { id: 'interview', icon: Briefcase, label: 'Interview' },
   // { id: 'task', icon: CheckSquare, label: 'Task' },
   // { id: 'group', icon: Users, label: 'Group' },
 ];
@@ -48,7 +48,7 @@ export function Sidebar({ currentTab, setTab, menuItems = defaultMenuItems }: Si
   return (
     <aside aria-label="Main Navigation" className="w-[220px] h-full flex flex-col bg-white border-r border-gray-100 p-6 hidden lg:flex rounded-r-[24px] shadow-sm flex-shrink-0">
       {/* Brand Logo */}
-      <div 
+      <div
         onClick={() => setTab('dashboard')}
         className="flex items-center gap-3 mb-8 pl-2 cursor-pointer group"
       >
@@ -86,14 +86,14 @@ export function Sidebar({ currentTab, setTab, menuItems = defaultMenuItems }: Si
 
       {/* User Quick Mini-Card */}
       {user && (
-        <div 
+        <div
           onClick={() => setTab('profile')}
           className="mb-3 p-2.5 rounded-2xl bg-gray-50 hover:bg-blue-50/60 border border-gray-100 cursor-pointer transition-all flex items-center gap-2.5"
         >
           <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-gray-200 shrink-0">
-            <img 
-              src={user.profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} 
-              alt={user.username} 
+            <img
+              src={user.profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+              alt={user.username}
               className="w-full h-full object-cover"
             />
           </div>
@@ -127,7 +127,7 @@ export function Sidebar({ currentTab, setTab, menuItems = defaultMenuItems }: Si
           <Settings size={18} className="text-[var(--text-sub)]" />
           <span className="text-sm">Account Settings</span>
         </button> */}
-        <button 
+        <button
           onClick={logout}
           className="sidebar-item text-left w-full text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
         >

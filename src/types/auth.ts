@@ -10,6 +10,11 @@ export interface UserProfile {
   interests: string[];
   goals: string[];
   avatar_url?: string | null;
+  interview_field?: string;
+  target_role?: string;
+  experience_level?: string;
+  interview_types?: string[];
+  skills?: string[];
   created_at?: string;
   updated_at?: string;
 }
@@ -42,4 +47,9 @@ export interface ProfileUpdatePayload {
   interests?: string[];
   goals?: string[];
   avatar_url?: string | null;
+  interview_field?: string;
+  target_role?: string;
+  experience_level?: string;
+  interview_types?: string[];
+  skills?: string[];
 }
