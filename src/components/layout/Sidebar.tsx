@@ -12,8 +12,10 @@ import {
   Settings,
   LogOut,
   FileText,
+  Shield,
   LucideIcon
 } from 'lucide-react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -127,6 +129,15 @@ export function Sidebar({ currentTab, setTab, menuItems = defaultMenuItems }: Si
           <Settings size={18} className="text-[var(--text-sub)]" />
           <span className="text-sm">Account Settings</span>
         </button> */}
+        {user?.is_staff && (
+          <Link
+            href="/admin"
+            className="sidebar-item text-left w-full text-[var(--primary)] hover:bg-[var(--primary-soft)] transition-colors cursor-pointer"
+          >
+            <Shield size={18} className="text-[var(--primary)]" />
+            <span className="text-sm font-semibold">Admin Panel</span>
+          </Link>
+        )}
         <button
           onClick={logout}
           className="sidebar-item text-left w-full text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"

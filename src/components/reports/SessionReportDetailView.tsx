@@ -406,6 +406,64 @@ export function SessionReportDetailView({
         </section>
 
         {/* ======================================================== */}
+        {/* INTERVIEW QUESTIONS & COACHING FEEDBACK (IF PRESENT)     */}
+        {/* ======================================================== */}
+        {report.question_feedback && report.question_feedback.length > 0 && (
+          <section id="sec-interview-feedback" className="space-y-6 pt-4 border-t border-slate-800/80">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-indigo-400">
+                <Sparkles size={16} />
+                <span>Interview Questions & Coaching Assessment ({report.question_feedback.length} questions)</span>
+              </div>
+              <span className="text-xs text-slate-400">
+                Evaluated response scores & personalized suggestions for improvement
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {report.question_feedback.map((qItem, qIdx) => {
+                const score = qItem.score || 0;
+                const scoreColor = score >= 7 ? 'text-emerald-400' : score >= 4 ? 'text-amber-400' : 'text-red-400';
+                const scoreBg = score >= 7 ? 'bg-emerald-500/10 border-emerald-500/30' : score >= 4 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-red-500/10 border-red-500/30';
+
+                return (
+                  <div key={qIdx} className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 space-y-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        <span className="w-7 h-7 rounded-xl bg-indigo-500/20 text-indigo-300 text-xs font-black flex items-center justify-center shrink-0 mt-0.5 border border-indigo-500/30">
+                          Q{qIdx + 1}
+                        </span>
+                        <h4 className="text-sm sm:text-base font-bold text-white leading-snug">{qItem.question}</h4>
+                      </div>
+                      <span className={`text-xs font-black px-3 py-1 rounded-xl border ${scoreBg} ${scoreColor} shrink-0`}>
+                        {score}/10
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 space-y-1">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Candidate Spoken Response</span>
+                      <p className="text-xs sm:text-sm text-slate-300 italic">
+                        "{qItem.answer || '(No answer provided)'}"
+                      </p>
+                    </div>
+
+                    {qItem.tip && (
+                      <div className="bg-indigo-950/30 border border-indigo-500/25 rounded-xl p-3.5 flex items-start gap-2.5">
+                        <TrendingUp size={15} className="text-indigo-400 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5 flex-1">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-300 block">Coaching Tip for Next Time</span>
+                          <p className="text-xs text-slate-200 leading-relaxed">{qItem.tip}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ======================================================== */}
         {/* SECTION 2: COMPLETE CONVERSATION CHAT WITH CORRECTIONS   */}
         {/* ======================================================== */}
         <section id="sec-conversation" className="space-y-6 pt-4 border-t border-slate-800/80">

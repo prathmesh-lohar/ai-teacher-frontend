@@ -13,6 +13,8 @@ export interface VADCallbacks {
   onSpeechStart?: () => void;
   onSpeechEnd?: (audioBlob: Blob) => void;
   onBargeIn?: () => void;
+  /** Called each frame during post-speech silence with remaining seconds before auto-submit */
+  onSilenceProgress?: (remainingSeconds: number) => void;
 }
 
 export interface VADOptions {
@@ -42,13 +44,15 @@ export class AudioRecorder {
   // Dynamic Background Noise Floor (moving baseline)
   private noiseFloor: number = 10;
   private noiseSamples: number[] = [];
+  private consecutiveSpeechFrames: number = 0;
+  private consecutiveAudibleFrames: number = 0;
 
   private callbacks: VADCallbacks = {};
   private options: VADOptions = {
-    speechThreshold: 20,
+    speechThreshold: 18,
     silenceThresholdMs: 1200,
     minSpeechDurationMs: 400,
-    maxSpeechDurationMs: 15000,
+    maxSpeechDurationMs: 45000,
   };
 
   /**
@@ -126,10 +130,16 @@ export class AudioRecorder {
 
       this.analyser.getByteFrequencyData(dataArray);
 
-      // Focus on human speech frequencies (~150Hz - 3400Hz, upper bins ignore sub-bass hum)
+      // Focus on human speech band (~180Hz to 3200Hz).
+      // Reject sub-bass table rumblings and high-frequency fan/preamp hiss (>3200Hz).
+      const sampleRate = this.audioContext?.sampleRate || 48000;
+      const binHz = sampleRate / (this.analyser.fftSize || 256);
+      const startBin = Math.max(1, Math.floor(180 / binHz));
+      const endBin = Math.min(bufferLength - 1, Math.ceil(3200 / binHz));
+
       let sum = 0;
       let speechBinCount = 0;
-      for (let i = 2; i < bufferLength - 10; i++) {
+      for (let i = startBin; i <= endBin; i++) {
         sum += dataArray[i];
         speechBinCount++;
       }
@@ -157,56 +167,80 @@ export class AudioRecorder {
         if (this.noiseSamples.length > 40) {
           this.noiseSamples.shift();
         }
-        // Baseline noise is the lowest 25% quantile of recent idle samples
+        // Baseline noise is the lowest 30% quantile of recent idle samples
         const sorted = [...this.noiseSamples].sort((a, b) => a - b);
-        const baseline = sorted[Math.floor(sorted.length * 0.25)] ?? volume;
-        this.noiseFloor = Math.max(4, Math.min(30, baseline));
+        const baseline = sorted[Math.floor(sorted.length * 0.3)] ?? volume;
+        this.noiseFloor = Math.max(4, Math.min(35, baseline));
       }
 
-      // --- Adaptive Thresholds ---
-      // Speech start threshold needs clear energy above ambient noise
-      const speechStartThreshold = Math.max(this.options.speechThreshold || 20, this.noiseFloor + 10);
-      // Silence threshold is dynamic: when volume drops back close to ambient noise level or below 40% of speech peak
-      const silenceThreshold = Math.max(12, this.noiseFloor + 5);
+      // --- Adaptive Thresholds with Environmental Noise Rejection ---
+      const baseThreshold = this.options.speechThreshold ?? 18;
+      // Speech start threshold requires clear vocal energy above room noise (+7dB)
+      const speechStartThreshold = Math.max(baseThreshold, this.noiseFloor + 7);
+      // Silence threshold detects return to ambient noise
+      const silenceThreshold = Math.max(8, this.noiseFloor + 3);
 
       if (!this.isUserSpeaking) {
-        // Checking for speech start
+        // Checking for speech start: require 2 consecutive frames to ignore random sharp clicks
         if (volume >= speechStartThreshold) {
-          this.isUserSpeaking = true;
-          this.speechStartTime = now;
-          this.lastAudibleTime = now;
-          this.peakSpeechVolume = volume;
-          this.startInternalRecording();
-          this.callbacks.onSpeechStart?.();
+          this.consecutiveSpeechFrames++;
+          if (this.consecutiveSpeechFrames >= 2) {
+            this.isUserSpeaking = true;
+            this.speechStartTime = now;
+            this.lastAudibleTime = now;
+            this.peakSpeechVolume = volume;
+            this.consecutiveAudibleFrames = 3;
+            this.startInternalRecording();
+            this.callbacks.onSpeechStart?.();
+          }
+        } else {
+          this.consecutiveSpeechFrames = 0;
         }
       } else {
-        // User is currently speaking -> track peak and check for silence or max duration
+        // User is currently speaking -> track peak and check for silence
         if (volume > this.peakSpeechVolume) {
           this.peakSpeechVolume = volume;
         }
 
-        // Voice active if above silence threshold AND above 35% of peak utterance volume
-        const isVoiceActive =
-          volume >= silenceThreshold && volume >= Math.max(14, this.peakSpeechVolume * 0.35);
+        // Environmental noise rejection:
+        // Voice is only active if it's above silence floor AND above 30% of peak speech energy
+        const isVoiceActive = volume >= silenceThreshold && volume >= Math.max(9, this.peakSpeechVolume * 0.30);
 
         if (isVoiceActive) {
-          this.lastAudibleTime = now;
+          this.consecutiveAudibleFrames++;
+          if (this.consecutiveAudibleFrames >= 2) {
+            this.lastAudibleTime = now;
+          }
+        } else {
+          this.consecutiveAudibleFrames = 0;
         }
 
         const silenceDuration = now - this.lastAudibleTime;
         const totalSpeechDuration = now - this.speechStartTime;
-        const requiredSilence = this.options.silenceThresholdMs || 1200;
-        const minSpeechDuration = this.options.minSpeechDurationMs || 400;
-        const maxSpeechDuration = this.options.maxSpeechDurationMs || 15000;
+        const requiredSilence = this.options.silenceThresholdMs ?? 1200; // 1.2s matching Talk with AI
+        const minSpeechDuration = this.options.minSpeechDurationMs ?? 400;
+        const maxSpeechDuration = this.options.maxSpeechDurationMs ?? 45000;
 
-        // Condition 1: Silence detected after user spoke
-        // Condition 2: Safety max speech duration reached (prevent hanging in very noisy room)
+        // Report silence countdown progress to UI (e.g. interview 3s countdown toast)
+        if (!isVoiceActive && silenceDuration > 0 && silenceDuration < requiredSilence) {
+          const remainingSecs = Math.ceil((requiredSilence - silenceDuration) / 1000);
+          this.callbacks.onSilenceProgress?.(remainingSecs);
+        } else if (isVoiceActive) {
+          // Reset countdown display while user is actively speaking
+          const fullSecs = Math.ceil(requiredSilence / 1000);
+          this.callbacks.onSilenceProgress?.(fullSecs);
+        }
+
+        // Pause detected after user spoke, or safety max speech duration reached
         if (silenceDuration >= requiredSilence || totalSpeechDuration >= maxSpeechDuration) {
+          console.log(`[AudioRecorder VAD] Pause detected! silenceDuration=${silenceDuration}ms >= ${requiredSilence}ms (NoiseFloor=${this.noiseFloor}, Vol=${volume}, Peak=${this.peakSpeechVolume})`);
           this.isUserSpeaking = false;
+          this.consecutiveSpeechFrames = 0;
+          this.consecutiveAudibleFrames = 0;
           if (totalSpeechDuration >= minSpeechDuration) {
             this.stopInternalRecordingAndDispatch();
           } else {
-            // Discard short clicks/ambient spikes
+            // Discard short clicks/keyboard noise
             this.cancelInternalRecording();
           }
         }
@@ -224,36 +258,57 @@ export class AudioRecorder {
   private startInternalRecording() {
     if (!this.audioStream) return;
 
-    this.audioChunks = [];
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : 'audio/webm';
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      try { this.mediaRecorder.stop(); } catch (_) { }
+    }
 
+    this.audioChunks = [];
+    let mediaRecorder: MediaRecorder;
     try {
-      this.mediaRecorder = new MediaRecorder(this.audioStream, { mimeType });
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          this.audioChunks.push(event.data);
-        }
-      };
-      this.mediaRecorder.start();
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : 'audio/mp4';
+      mediaRecorder = new MediaRecorder(this.audioStream, { mimeType });
+    } catch (_) {
+      mediaRecorder = new MediaRecorder(this.audioStream);
+    }
+
+    this.mediaRecorder = mediaRecorder;
+    this.mediaRecorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        this.audioChunks.push(event.data);
+      }
+    };
+    try {
+      // 100ms slices ensure chunks are buffered continuously and quickly
+      this.mediaRecorder.start(100);
     } catch (e) {
-      console.error('Failed to start MediaRecorder:', e);
+      console.error('Failed to start MediaRecorder in VAD:', e);
     }
   }
 
   private stopInternalRecordingAndDispatch() {
     if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
       if (this.audioChunks.length > 0) {
-        const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+        const blob = new Blob(this.audioChunks, { type: mimeType });
         this.audioChunks = [];
         this.callbacks.onSpeechEnd?.(blob);
       }
       return;
     }
 
+    if (this.mediaRecorder.state === 'recording') {
+      try {
+        this.mediaRecorder.requestData();
+      } catch (_) { }
+    }
+
     this.mediaRecorder.onstop = () => {
-      const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
+      const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+      const blob = new Blob(this.audioChunks, { type: mimeType });
       this.audioChunks = [];
       this.callbacks.onSpeechEnd?.(blob);
     };
@@ -261,7 +316,11 @@ export class AudioRecorder {
     try {
       this.mediaRecorder.stop();
     } catch (e) {
-      console.warn('Error stopping media recorder:', e);
+      console.warn('Error stopping media recorder in VAD:', e);
+      const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+      const blob = new Blob(this.audioChunks, { type: mimeType });
+      this.audioChunks = [];
+      this.callbacks.onSpeechEnd?.(blob);
     }
   }
 
@@ -277,7 +336,7 @@ export class AudioRecorder {
   }
 
   /**
-   * Manual fallback start recording
+   * Manual direct recording with real-time volume level tracking
    */
   public async startRecording(onVolumeUpdate?: (volume: number) => void): Promise<boolean> {
     try {
@@ -294,23 +353,35 @@ export class AudioRecorder {
         });
       }
 
+      this.setupAudioAnalysis();
+      this.isMonitoring = true;
+
       if (onVolumeUpdate) {
         this.callbacks.onVolumeUpdate = onVolumeUpdate;
-        this.setupAudioAnalysis();
+        this.startVolumeMonitoringLoop();
       }
 
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
+      let mediaRecorder: MediaRecorder;
+      try {
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/webm')
+            ? 'audio/webm'
+            : 'audio/mp4';
+        mediaRecorder = new MediaRecorder(this.audioStream, { mimeType });
+      } catch (_) {
+        mediaRecorder = new MediaRecorder(this.audioStream);
+      }
 
-      this.mediaRecorder = new MediaRecorder(this.audioStream, { mimeType });
+      this.mediaRecorder = mediaRecorder;
       this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           this.audioChunks.push(event.data);
         }
       };
 
-      this.mediaRecorder.start();
+      // Collect data slices every 250ms for reliability
+      this.mediaRecorder.start(250);
       return true;
     } catch (err) {
       console.error('Failed to access microphone:', err);
@@ -318,20 +389,60 @@ export class AudioRecorder {
     }
   }
 
+  private startVolumeMonitoringLoop() {
+    if (!this.analyser) return;
+
+    const bufferLength = this.analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const checkVolume = () => {
+      if (!this.isMonitoring || !this.analyser || !this.audioStream?.active) {
+        return;
+      }
+
+      this.analyser.getByteFrequencyData(dataArray);
+
+      let sum = 0;
+      let count = 0;
+      for (let i = 2; i < bufferLength - 10; i++) {
+        sum += dataArray[i];
+        count++;
+      }
+      const average = sum / (count || 1);
+      const volume = Math.min(100, Math.round((average / 128) * 100));
+
+      this.callbacks.onVolumeUpdate?.(volume);
+      this.animFrameId = requestAnimationFrame(checkVolume);
+    };
+
+    if (this.animFrameId) {
+      cancelAnimationFrame(this.animFrameId);
+    }
+    this.animFrameId = requestAnimationFrame(checkVolume);
+  }
+
   /**
-   * Manual fallback stop recording
+   * Stop recording and resolve with complete audio Blob
    */
   public stopRecording(): Promise<Blob> {
     return new Promise((resolve) => {
+      this.isMonitoring = false;
+      if (this.animFrameId) {
+        cancelAnimationFrame(this.animFrameId);
+        this.animFrameId = null;
+      }
+
       if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
-        const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+        const blob = new Blob(this.audioChunks, { type: mimeType });
         this.audioChunks = [];
         resolve(blob);
         return;
       }
 
       this.mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+        const audioBlob = new Blob(this.audioChunks, { type: mimeType });
         this.audioChunks = [];
         resolve(audioBlob);
       };
@@ -340,7 +451,9 @@ export class AudioRecorder {
         this.mediaRecorder.stop();
       } catch (e) {
         console.warn('Error stopping manual recording:', e);
-        const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+        const blob = new Blob(this.audioChunks, { type: mimeType });
+        this.audioChunks = [];
         resolve(blob);
       }
     });
@@ -365,6 +478,17 @@ export class AudioRecorder {
     this.isUserSpeaking = false;
     this.peakSpeechVolume = 0;
     this.cancelInternalRecording();
+  }
+
+  /**
+   * External signal that speech activity was detected (e.g. browser SpeechRecognition result).
+   * Resets the silence timer to prevent premature auto-submit while user is genuinely speaking.
+   */
+  public touchSpeechActivity() {
+    if (this.isUserSpeaking) {
+      this.lastAudibleTime = Date.now();
+      this.consecutiveAudibleFrames = 3;
+    }
   }
 
   public cleanup() {

@@ -29,9 +29,11 @@ import { SessionReportDetailView } from './SessionReportDetailView';
 
 interface ReportsModuleProps {
   onStartPractice?: (topic?: string) => void;
+  initialSessionId?: string | null;
+  onClearInitialSession?: () => void;
 }
 
-export function ReportsModule({ onStartPractice }: ReportsModuleProps) {
+export function ReportsModule({ onStartPractice, initialSessionId, onClearInitialSession }: ReportsModuleProps) {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [reports, setReports] = useState<PracticeSessionRecord[]>([]);
   const [stats, setStats] = useState<ReportsResponse['stats']>({
@@ -48,7 +50,13 @@ export function ReportsModule({ onStartPractice }: ReportsModuleProps) {
   const [selectedScoreFilter, setSelectedScoreFilter] = useState('all');
   
   // Selected Report for Deep Dive Inspection
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(initialSessionId || null);
+
+  useEffect(() => {
+    if (initialSessionId) {
+      setSelectedSessionId(initialSessionId);
+    }
+  }, [initialSessionId]);
   const [selectedReportDetail, setSelectedReportDetail] = useState<{
     session: PracticeSessionRecord;
     report: SessionReportData;
@@ -211,6 +219,7 @@ export function ReportsModule({ onStartPractice }: ReportsModuleProps) {
         sessionId={selectedSessionId}
         onBack={() => {
           setSelectedSessionId(null);
+          onClearInitialSession?.();
           fetchReports();
         }}
         onStartPractice={onStartPractice}

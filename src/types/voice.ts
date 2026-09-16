@@ -70,6 +70,12 @@ export interface SessionReportData {
   practice_plan: string[];
   duration_seconds?: number;
   created_at?: string;
+  question_feedback?: Array<{
+    question: string;
+    answer: string;
+    score: number;
+    tip: string;
+  }>;
 }
 
 export interface PracticeSessionRecord {

@@ -12,17 +12,24 @@ class MultilingualSpeechPlayer {
   private isPlaying: boolean = false;
   private activeKey: string | null = null;
   private onEndCallbacks: Set<() => void> = new Set();
+  private activePlaybackId: number = 0;
 
   private getBackendBaseUrl(): string {
     return API_BASE_URL;
   }
 
   /**
-   * Stop any currently playing audio or speech synthesis
+   * Stop any currently playing audio or speech synthesis immediately
    */
   public stop() {
+    this.activePlaybackId++;
+    this.isPlaying = false;
+    this.activeKey = null;
+
     if (this.currentAudio) {
       try {
+        this.currentAudio.onended = null;
+        this.currentAudio.onerror = null;
         this.currentAudio.pause();
         this.currentAudio.currentTime = 0;
         this.currentAudio.src = '';
@@ -38,14 +45,14 @@ class MultilingualSpeechPlayer {
       } catch (e) {
         console.warn('Error cancelling speech synthesis:', e);
       }
-      this.currentUtterance = null;
+      if (this.currentUtterance) {
+        this.currentUtterance.onend = null;
+        this.currentUtterance.onerror = null;
+        this.currentUtterance = null;
+      }
     }
 
-    this.isPlaying = false;
-    this.activeKey = null;
-
-    // Trigger end callbacks
-    this.onEndCallbacks.forEach((cb) => cb());
+    // Clear callbacks without invoking them on manual cancellation/stop
     this.onEndCallbacks.clear();
   }
 
@@ -85,6 +92,7 @@ class MultilingualSpeechPlayer {
     // Stop previous playback
     this.stop();
 
+    const currentId = this.activePlaybackId;
     const key = options.key || 'speech';
     this.activeKey = key;
     this.isPlaying = true;
@@ -114,27 +122,49 @@ class MultilingualSpeechPlayer {
 
       const playPromise = new Promise<void>((resolve, reject) => {
         audio.onended = () => {
-          this.stop();
-          resolve();
+          if (this.activePlaybackId === currentId) {
+            const callbacks = Array.from(this.onEndCallbacks);
+            this.stop();
+            callbacks.forEach((cb) => cb());
+            resolve();
+          } else {
+            resolve();
+          }
         };
 
         audio.onerror = (e) => {
-          reject(e);
+          if (this.activePlaybackId === currentId) {
+            reject(e);
+          } else {
+            resolve();
+          }
         };
 
         audio.src = audioUrl;
         audio.play().catch((err) => {
-          reject(err);
+          if (this.activePlaybackId === currentId) {
+            reject(err);
+          } else {
+            resolve();
+          }
         });
       });
 
       await playPromise;
       return;
     } catch (apiError) {
+      // If playback was cancelled or stopped during the fetch/play, DO NOT FALLBACK!
+      if (this.activePlaybackId !== currentId || !this.isPlaying) {
+        return;
+      }
       console.warn('[SpeechPlayer] Backend TTS failed or offline, falling back to Web Speech API:', apiError);
     }
 
     // Step 2: Browser Web Speech API Fallback
+    if (this.activePlaybackId !== currentId || !this.isPlaying) {
+      return;
+    }
+
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel();
@@ -164,21 +194,29 @@ class MultilingualSpeechPlayer {
         }
 
         utterance.onend = () => {
-          this.stop();
+          if (this.activePlaybackId === currentId) {
+            const callbacks = Array.from(this.onEndCallbacks);
+            this.stop();
+            callbacks.forEach((cb) => cb());
+          }
         };
 
         utterance.onerror = (e) => {
-          console.warn('[SpeechPlayer] Web Speech API playback error:', e);
-          this.stop();
-          options.onError?.(e);
+          if (this.activePlaybackId === currentId) {
+            console.warn('[SpeechPlayer] Web Speech API playback error:', e);
+            this.stop();
+            options.onError?.(e);
+          }
         };
 
         this.currentUtterance = utterance;
         window.speechSynthesis.speak(utterance);
       } catch (err) {
-        console.error('[SpeechPlayer] Synthesis error:', err);
-        this.stop();
-        options.onError?.(err);
+        if (this.activePlaybackId === currentId) {
+          console.error('[SpeechPlayer] Synthesis error:', err);
+          this.stop();
+          options.onError?.(err);
+        }
       }
     } else {
       this.stop();

@@ -15,6 +15,7 @@ import ProfileModule from '@/components/profile/ProfileModule';
 import ReportsModule from '@/components/reports/ReportsModule';
 import { LearnModule } from '@/components/learn/LearnModule';
 import ApprovalPending from '@/components/auth/ApprovalPending';
+import InterviewHub from '@/components/interview/InterviewHub';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/common/Button';
 
@@ -22,6 +23,7 @@ export default function Home() {
   const router = useRouter();
   const { user, loading, isAuthenticated, isApproved } = useAuth();
   const [currentTab, setTab] = useState('dashboard');
+  const [selectedReportSessionId, setSelectedReportSessionId] = useState<string | null>(null);
   const [talkTopic, setTalkTopic] = useState<string>('Daily Casual Talk');
   const [talkMode, setTalkMode] = useState<'voice' | 'text' | 'video' | 'hub'>('hub');
   const [talkLaunchTrigger, setTalkLaunchTrigger] = useState<number>(0);
@@ -175,7 +177,11 @@ export default function Home() {
                 transition={{ duration: 0.3 }}
                 className="py-4 h-full"
               >
-                <ReportsModule onStartPractice={(t) => handleStartPractice(t, 'voice')} />
+                <ReportsModule 
+                  onStartPractice={(t) => handleStartPractice(t, 'voice')} 
+                  initialSessionId={selectedReportSessionId}
+                  onClearInitialSession={() => setSelectedReportSessionId(null)}
+                />
               </motion.div>
             )}
 
@@ -201,8 +207,27 @@ export default function Home() {
               </motion.div>
             )}
 
+            {/* Interview Module */}
+            {currentTab === 'interview' && (
+              <motion.div
+                key="interview"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3 }}
+                className="py-4 h-full"
+              >
+                <InterviewHub 
+                  onViewReport={(sessionId) => {
+                    setSelectedReportSessionId(sessionId);
+                    setTab('reports');
+                  }}
+                />
+              </motion.div>
+            )}
+
             {/* Module Development Placeholder for other tabs */}
-            {currentTab !== 'dashboard' && currentTab !== 'talk' && currentTab !== 'profile' && currentTab !== 'reports' && currentTab !== 'learn' && (
+            {currentTab !== 'dashboard' && currentTab !== 'talk' && currentTab !== 'profile' && currentTab !== 'reports' && currentTab !== 'learn' && currentTab !== 'interview' && (
               <motion.div
                 key="placeholder"
                 initial={{ opacity: 0, y: 15 }}
