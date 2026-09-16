@@ -596,7 +596,7 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#07091a] flex flex-col selection:bg-indigo-500/30">
+    <div className="fixed inset-0 z-[60] bg-[#07091a] flex flex-col selection:bg-indigo-500/30">
       {/* Top Header */}
       <div className="flex items-center justify-between px-5 sm:px-8 py-4 border-b border-white/10 shrink-0 bg-slate-950/60 backdrop-blur-md">
         <div className="flex-1 min-w-0">

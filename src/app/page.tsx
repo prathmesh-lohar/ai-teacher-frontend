@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, BookOpen, MessageSquare, UserCircle, Sparkles, LogIn, FileText } from 'lucide-react';
+import { LayoutDashboard, BookOpen, MessageSquare, Briefcase, UserCircle, Sparkles, LogIn, FileText } from 'lucide-react';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import HeroBanner from '@/components/dashboard/HeroBanner';
@@ -260,34 +260,56 @@ export default function Home() {
         </div>
 
         {/* Mobile Navigation Toolbar */}
-        <nav aria-label="Mobile Navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex items-center justify-around p-3 z-50 rounded-t-[2rem] shadow-2xl">
+        <nav aria-label="Mobile Navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 flex items-center justify-around px-2 py-2 z-40 rounded-t-[1.75rem] shadow-[0_-8px_25px_rgba(0,0,0,0.06)]">
           <button 
             onClick={() => setTab('dashboard')} 
             aria-label="Dashboard"
-            className={currentTab === 'dashboard' ? 'text-[var(--primary)]' : 'text-[var(--text-sub)]'}
+            className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
+              currentTab === 'dashboard' ? 'text-[var(--primary)] font-semibold' : 'text-[var(--text-sub)] hover:text-gray-900'
+            }`}
           >
-            <LayoutDashboard size={24} />
+            <LayoutDashboard size={20} />
+            <span className="text-[10px] tracking-tight">Dashboard</span>
           </button>
           <button 
             onClick={handleOpenAllTopics} 
             aria-label="Learn"
-            className={currentTab === 'learn' ? 'text-[var(--primary)]' : 'text-[var(--text-sub)]'}
+            className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
+              currentTab === 'learn' ? 'text-[var(--primary)] font-semibold' : 'text-[var(--text-sub)] hover:text-gray-900'
+            }`}
           >
-            <BookOpen size={24} />
+            <BookOpen size={20} />
+            <span className="text-[10px] tracking-tight">Learn</span>
           </button>
           <button 
             onClick={() => setTab('talk')} 
             aria-label="Talk AI"
-            className={currentTab === 'talk' ? 'text-[var(--primary)]' : 'text-[var(--text-sub)]'}
+            className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
+              currentTab === 'talk' ? 'text-[var(--primary)] font-semibold' : 'text-[var(--text-sub)] hover:text-gray-900'
+            }`}
           >
-            <MessageSquare size={24} />
+            <MessageSquare size={20} />
+            <span className="text-[10px] tracking-tight">Talk AI</span>
+          </button>
+          <button 
+            onClick={() => setTab('interview')} 
+            aria-label="Interview"
+            className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
+              currentTab === 'interview' ? 'text-[var(--primary)] font-semibold' : 'text-[var(--text-sub)] hover:text-gray-900'
+            }`}
+          >
+            <Briefcase size={20} />
+            <span className="text-[10px] tracking-tight">Interview</span>
           </button>
           <button 
             onClick={() => setTab('profile')} 
             aria-label="Profile"
-            className={currentTab === 'profile' ? 'text-[var(--primary)]' : 'text-[var(--text-sub)]'}
+            className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
+              currentTab === 'profile' ? 'text-[var(--primary)] font-semibold' : 'text-[var(--text-sub)] hover:text-gray-900'
+            }`}
           >
-            <UserCircle size={24} />
+            <UserCircle size={20} />
+            <span className="text-[10px] tracking-tight">Profile</span>
           </button>
         </nav>
       </main>
