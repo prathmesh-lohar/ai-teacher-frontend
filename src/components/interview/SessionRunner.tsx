@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Loader2,
   Check,
-  Flag,
+  PhoneOff,
   Edit3,
   Sparkles,
   Volume2,
@@ -146,6 +146,7 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
   const currentQ = questions[currentQIndex];
   const progress =
     questions.length > 0 ? (currentQIndex / questions.length) * 100 : 0;
+  const isAiSpeaking = runnerState === 'playing_question' || avatarState === 'talking';
 
   // Gentle reminder if candidate sits silently for 45 seconds before starting to speak
   useEffect(() => {
@@ -405,6 +406,13 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
     openMicrophone();
   };
 
+  const handleSaveAndNext = () => {
+    if (isAiSpeaking || runnerState === 'processing_turn') {
+      return;
+    }
+    handleCompleteCurrentAnswer();
+  };
+
   const closeMicrophone = () => {
     if (autoSubmitTimerRef.current) {
       clearTimeout(autoSubmitTimerRef.current);
@@ -614,20 +622,20 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
           {session && runnerState !== 'intro' && runnerState !== 'generating_report' && runnerState !== 'done' && (
             <button
               onClick={() => handleExit(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-white border border-red-500/30 hover:border-red-500/50 text-xs font-normal transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
               title="End interview now and see your performance report"
             >
-              <Flag size={13} />
+              <PhoneOff size={13} />
               <span>End &amp; View Report</span>
             </button>
           )}
-          <button
+          {/* <button
             onClick={() => handleExit(answersRef.current.length > 0)}
             className="p-2 rounded-xl text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
             title="Leave Session"
           >
             <X size={18} />
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -726,10 +734,10 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
                   {/* Status & Real-Time Audio Level Indicator */}
                   <div
                     className={`flex items-center justify-between w-full px-5 py-3 rounded-2xl border transition-all ${runnerState === 'processing_turn'
-                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                        : isRecording
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                          : 'bg-white/5 border-white/10 text-slate-400'
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                      : isRecording
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                        : 'bg-white/5 border-white/10 text-slate-400'
                       }`}
                   >
                     <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold">
@@ -800,18 +808,20 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
                     )}
                   </div>
 
-                  {/* Submit Button */}
-                  <div className="flex items-center gap-3 w-full">
+                  {/* Card Action Hint and Quick Trigger */}
+                  <div className="flex items-center justify-between gap-3 w-full pt-1">
+                    <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Auto-submits after 3s silence, or use <strong>Save and Next</strong> below.</span>
+                    </p>
                     <button
+                      type="button"
                       onClick={() => handleCompleteCurrentAnswer()}
-                      disabled={runnerState === 'processing_turn'}
-                      className="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                      disabled={isAiSpeaking || runnerState === 'processing_turn'}
+                      className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-semibold text-xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {runnerState === 'processing_turn' ? (
-                        <><Loader2 size={16} className="animate-spin" /><span>Transcribing &amp; Saving Answer...</span></>
-                      ) : (
-                        <><Check size={17} /><span>Submit Answer &amp; Next</span></>
-                      )}
+                      <Check size={14} />
+                      <span>Save and Next</span>
                     </button>
                   </div>
                 </div>
@@ -847,19 +857,58 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
         </AnimatePresence>
       </div>
 
-      {/* Bottom Action Bar */}
-      {(runnerState === 'playing_question' || runnerState === 'user_turn') && (
-        <div className="shrink-0 px-5 sm:px-8 py-4 border-t border-white/10 flex items-center justify-between bg-slate-950/40">
+      {/* Sticky Bottom Action Bar */}
+      {(runnerState === 'playing_question' || runnerState === 'user_turn' || runnerState === 'processing_turn') && (
+        <div className="shrink-0 px-4 sm:px-8 py-3.5 border-t border-white/10 flex items-center justify-between gap-3 bg-slate-950/85 backdrop-blur-xl z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.6)]">
           <button
             onClick={handleSkip}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-400 hover:bg-white/10 hover:text-white transition-all text-xs sm:text-sm font-semibold cursor-pointer"
+            disabled={runnerState === 'processing_turn'}
+            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl border border-slate-700/70 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white transition-all text-xs sm:text-sm font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm active:scale-95 hover:border-slate-600"
+            title="Skip this question and move to next"
           >
-            <SkipForward size={16} />
+            <SkipForward size={16} className="text-slate-400" />
             <span>Skip Question</span>
           </button>
-          <div className="text-xs text-slate-500 font-mono">
-            Question {currentQIndex + 1} of {questions.length}
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            <span className="font-mono">Question {currentQIndex + 1} of {questions.length}</span>
           </div>
+
+          <button
+            onClick={handleSaveAndNext}
+            disabled={isAiSpeaking || runnerState === 'processing_turn'}
+            className={`flex items-center gap-2 px-5 sm:px-7 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-lg transition-all ${isAiSpeaking || runnerState === 'processing_turn'
+              ? 'bg-slate-800/80 text-slate-400 border border-slate-700/50 opacity-50 cursor-not-allowed shadow-none'
+              : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/25 cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+              }`}
+            title={
+              isAiSpeaking
+                ? 'Interviewer is speaking. Please listen before saving...'
+                : runnerState === 'processing_turn'
+                  ? 'Saving answer...'
+                  : currentQIndex === questions.length - 1
+                    ? 'Save answer and view report'
+                    : 'Save answer and go to next question'
+            }
+          >
+            {runnerState === 'processing_turn' ? (
+              <>
+                <Loader2 size={16} className="animate-spin text-white" />
+                <span>Saving Answer...</span>
+              </>
+            ) : isAiSpeaking ? (
+              <>
+                <Volume2 size={16} className="animate-pulse text-indigo-400" />
+                <span>Save and Next</span>
+              </>
+            ) : (
+              <>
+                <Check size={17} className="stroke-[2.5]" />
+                <span>Save and Next</span>
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>
