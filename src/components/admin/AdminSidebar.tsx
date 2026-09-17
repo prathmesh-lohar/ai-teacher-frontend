@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, Briefcase, ArrowLeft, Shield, LogOut } from 'lucide-react';
+import { LayoutDashboard, Briefcase, ArrowLeft, Shield, LogOut, Cpu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -14,6 +14,7 @@ interface AdminSidebarProps {
 
 const navItems = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { id: 'tokens', icon: Cpu, label: 'Token Usage' },
   { id: 'interview', icon: Briefcase, label: 'Interview Modules' },
 ];
 

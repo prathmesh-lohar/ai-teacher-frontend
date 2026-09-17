@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import ModuleList from '@/components/admin/interview/ModuleList';
+import TokenUsageDashboard from '@/components/admin/token/TokenUsageDashboard';
 import Link from 'next/link';
 
 export default function AdminPage() {
@@ -216,6 +217,17 @@ export default function AdminPage() {
               className="flex-1 flex flex-col"
             >
               <AdminDashboard />
+            </motion.div>
+          )}
+          {tab === 'tokens' && (
+            <motion.div
+              key="tokens"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex-1 flex flex-col overflow-hidden"
+            >
+              <TokenUsageDashboard />
             </motion.div>
           )}
           {tab === 'interview' && (
