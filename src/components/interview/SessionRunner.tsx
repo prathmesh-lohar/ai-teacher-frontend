@@ -141,6 +141,8 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
   const answersRef = useRef<SessionAnswer[]>([]);
   const questionSafetyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoSubmitTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const speakingQuestionIndexRef = useRef<number | null>(null);
+  const postSpeechDelayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const questions = module.questions || [];
   const currentQ = questions[currentQIndex];
@@ -174,10 +176,22 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
       if (questionSafetyTimerRef.current) {
         clearTimeout(questionSafetyTimerRef.current);
       }
+      if (postSpeechDelayTimerRef.current) {
+        clearTimeout(postSpeechDelayTimerRef.current);
+      }
     };
   }, []);
 
   const cleanupAllAudio = () => {
+    if (questionSafetyTimerRef.current) {
+      clearTimeout(questionSafetyTimerRef.current);
+      questionSafetyTimerRef.current = null;
+    }
+    if (postSpeechDelayTimerRef.current) {
+      clearTimeout(postSpeechDelayTimerRef.current);
+      postSpeechDelayTimerRef.current = null;
+    }
+    speakingQuestionIndexRef.current = null;
     if (speechRecRef.current) {
       try { speechRecRef.current.stop(); } catch (_) { }
       speechRecRef.current = null;
@@ -202,6 +216,7 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
     setError('');
     try {
       setStatusText('Starting session...');
+      speakingQuestionIndexRef.current = null;
       const s = await interviewService.startSession(module.id);
       setSession(s);
       setRunnerState('playing_question');
@@ -337,83 +352,7 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
     }
   }, [currentQIndex, currentQ]);
 
-  const speakQuestion = useCallback(async () => {
-    if (!currentQ) return;
-    setAvatarState('talking');
-    setStatusText(`${currentQ.speaker_name} is asking a question...`);
-    currentAnswerRef.current = '';
-    speechRecTranscriptRef.current = '';
-    liveTranscriptRef.current = '';
-    setLiveTranscript('');
-    setLastTranscript('');
-    setIsEditingText(false);
-
-    if (questionSafetyTimerRef.current) {
-      clearTimeout(questionSafetyTimerRef.current);
-    }
-
-    // Safety timeout: transition after 14s max if speech hangs or user gesture blocked
-    questionSafetyTimerRef.current = setTimeout(() => {
-      console.log('[Interview] Question speech safety timeout reached — opening microphone.');
-      setAvatarState('listening');
-      setRunnerState('user_turn');
-      openMicrophone();
-    }, 14000);
-
-    const finishQuestionAndListen = () => {
-      if (questionSafetyTimerRef.current) {
-        clearTimeout(questionSafetyTimerRef.current);
-        questionSafetyTimerRef.current = null;
-      }
-      setAvatarState('listening');
-      setRunnerState('user_turn');
-      openMicrophone();
-    };
-
-    try {
-      await speechPlayer.play(currentQ.question_text, {
-        key: `interview-q-${currentQIndex}`,
-        language: 'English',
-        langCode: 'en-US',
-        onEnd: () => {
-          finishQuestionAndListen();
-        },
-        onError: () => {
-          console.warn('[Interview] Question TTS failed or muted, opening mic immediately.');
-          finishQuestionAndListen();
-        },
-      });
-    } catch (e) {
-      console.warn('[Interview] Question speech error:', e);
-      finishQuestionAndListen();
-    }
-  }, [currentQ, currentQIndex, openMicrophone]);
-
-  useEffect(() => {
-    if (runnerState === 'playing_question') {
-      speakQuestion();
-    }
-  }, [runnerState, speakQuestion]);
-
-  const handleInterruptAndAnswer = () => {
-    if (questionSafetyTimerRef.current) {
-      clearTimeout(questionSafetyTimerRef.current);
-      questionSafetyTimerRef.current = null;
-    }
-    speechPlayer.stop();
-    setAvatarState('listening');
-    setRunnerState('user_turn');
-    openMicrophone();
-  };
-
-  const handleSaveAndNext = () => {
-    if (isAiSpeaking || runnerState === 'processing_turn') {
-      return;
-    }
-    handleCompleteCurrentAnswer();
-  };
-
-  const closeMicrophone = () => {
+  const closeMicrophone = useCallback(() => {
     if (autoSubmitTimerRef.current) {
       clearTimeout(autoSubmitTimerRef.current);
       autoSubmitTimerRef.current = null;
@@ -428,6 +367,135 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
     }
     setIsRecording(false);
     setLiveVolume(0);
+  }, []);
+
+  const speakQuestion = useCallback(async () => {
+    if (!currentQ) return;
+
+    // Prevent re-triggering speech for the same question index
+    if (speakingQuestionIndexRef.current === currentQIndex) {
+      return;
+    }
+    speakingQuestionIndexRef.current = currentQIndex;
+
+    console.log(`[Interview] Speaking Question ${currentQIndex + 1}: "${currentQ.question_text.slice(0, 60)}..."`);
+    setAvatarState('talking');
+    setStatusText(`${currentQ.speaker_name} is asking a question...`);
+    currentAnswerRef.current = '';
+    speechRecTranscriptRef.current = '';
+    liveTranscriptRef.current = '';
+    setLiveTranscript('');
+    setLastTranscript('');
+    setIsEditingText(false);
+
+    // Make sure microphone is fully closed while AI speaks
+    closeMicrophone();
+
+    if (questionSafetyTimerRef.current) {
+      clearTimeout(questionSafetyTimerRef.current);
+      questionSafetyTimerRef.current = null;
+    }
+    if (postSpeechDelayTimerRef.current) {
+      clearTimeout(postSpeechDelayTimerRef.current);
+      postSpeechDelayTimerRef.current = null;
+    }
+
+    let hasHandledEnd = false;
+    const finishQuestionAndListen = () => {
+      if (hasHandledEnd) return;
+      hasHandledEnd = true;
+
+      if (questionSafetyTimerRef.current) {
+        clearTimeout(questionSafetyTimerRef.current);
+        questionSafetyTimerRef.current = null;
+      }
+
+      console.log(`[Interview] AI completed speaking question ${currentQIndex + 1}. Preparing microphone...`);
+      // A small clean pause (350ms) after speech audio concludes ensures:
+      // 1. Candidate hears the entire sentence with zero interruption
+      // 2. Hardware output speaker buffer flushes so microphone doesn't capture TTS echo
+      postSpeechDelayTimerRef.current = setTimeout(() => {
+        postSpeechDelayTimerRef.current = null;
+        setAvatarState('listening');
+        setRunnerState('user_turn');
+        openMicrophone();
+      }, 350);
+    };
+
+    // Calculate generous safety deadline based on word count (minimum 45s, up to 90s)
+    const wordCount = (currentQ.question_text || '').trim().split(/\s+/).length;
+    const safetyTimeoutMs = Math.max(45000, wordCount * 1200 + 35000);
+
+    // Safety watchdog: only triggers if playback totally stalled or user gesture blocked
+    questionSafetyTimerRef.current = setTimeout(() => {
+      if (hasHandledEnd) return;
+
+      // If speech is still actively outputting, DO NOT cut it off!
+      if (speechPlayer.isCurrentlyPlaying()) {
+        console.log('[Interview] Safety timer fired but AI speech is still actively playing — keeping mic closed.');
+        // Re-check after 6 seconds
+        questionSafetyTimerRef.current = setTimeout(() => {
+          if (!hasHandledEnd && !speechPlayer.isCurrentlyPlaying()) {
+            console.warn('[Interview] AI speech finished after extended check — opening mic.');
+            finishQuestionAndListen();
+          }
+        }, 6000);
+        return;
+      }
+
+      console.warn('[Interview] AI speech safety timeout reached without active playback — stopping audio & opening microphone.');
+      speechPlayer.stop();
+      finishQuestionAndListen();
+    }, safetyTimeoutMs);
+
+    try {
+      await speechPlayer.play(currentQ.question_text, {
+        key: `interview-q-${currentQIndex}`,
+        language: 'English',
+        langCode: 'en-US',
+        onEnd: () => {
+          console.log(`[Interview] TTS onEnd fired for Question ${currentQIndex + 1}`);
+          finishQuestionAndListen();
+        },
+        onError: (err) => {
+          console.warn('[Interview] Question TTS failed or muted:', err);
+          speechPlayer.stop();
+          finishQuestionAndListen();
+        },
+      });
+    } catch (e) {
+      console.warn('[Interview] Question speech error:', e);
+      speechPlayer.stop();
+      finishQuestionAndListen();
+    }
+  }, [currentQ, currentQIndex, openMicrophone, closeMicrophone]);
+
+  useEffect(() => {
+    if (runnerState === 'playing_question') {
+      speakQuestion();
+    }
+  }, [runnerState, speakQuestion]);
+
+  const handleInterruptAndAnswer = () => {
+    if (questionSafetyTimerRef.current) {
+      clearTimeout(questionSafetyTimerRef.current);
+      questionSafetyTimerRef.current = null;
+    }
+    if (postSpeechDelayTimerRef.current) {
+      clearTimeout(postSpeechDelayTimerRef.current);
+      postSpeechDelayTimerRef.current = null;
+    }
+    speechPlayer.stop();
+    setAvatarState('listening');
+    setRunnerState('user_turn');
+    openMicrophone();
+  };
+
+  const handleSaveAndNext = () => {
+    if (isAiSpeaking || runnerState === 'processing_turn') {
+      return;
+    }
+    handleCompleteCurrentAnswer();
   };
 
   const handleCompleteCurrentAnswer = async (passedBlob?: Blob) => {
@@ -476,7 +544,7 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
 
     // 2. Transcribe via Whisper STT if audio was captured
     if (audioBlob && audioBlob.size > 200) {
-      setStatusText('Transcribing your answer with Whisper AI...');
+      setStatusText('Transcribing your answer with  AI...');
       const whisperText = await callWhisperSTT(audioBlob);
       if (whisperText) {
         finalTranscript = whisperText;
@@ -532,6 +600,7 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
         setRunnerState('wrap_up');
         handleWrapUpWithAnswers(nextAnswers);
       } else {
+        speakingQuestionIndexRef.current = null;
         setCurrentQIndex(nextIndex);
         setAvatarState('idle');
         setRunnerState('playing_question');
@@ -660,9 +729,9 @@ export default function SessionRunner({ module, onComplete, onExit }: SessionRun
                 {questions.length} questions &middot; {module.target_role || module.field}
               </p>
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-left mb-6 text-xs sm:text-sm text-slate-300 space-y-2">
-                <p className="flex items-center gap-2"><span>🎙️</span><span>Speak clearly into your microphone when asked.</span></p>
-                <p className="flex items-center gap-2"><span>⚡</span><span>Live audio + Groq Whisper AI transcribes your answers.</span></p>
-                <p className="flex items-center gap-2"><span>📊</span><span>Get instant CEFR scores, grammar tips, and feedback.</span></p>
+                <p className="flex items-center gap-2"><span>🎙️</span><span>Speak clearly into your microphone after each question.</span></p>
+                <p className="flex items-center gap-2"><span>⚡</span><span>Advanced AI transcribes and processes your responses in real time.</span></p>
+                <p className="flex items-center gap-2"><span>📊</span><span>In-Depth Evaluation - Detailed report, grammar, and tips.</span></p>
               </div>
               <button
                 onClick={beginSession}

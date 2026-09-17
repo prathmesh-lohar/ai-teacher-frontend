@@ -62,7 +62,19 @@ class MultilingualSpeechPlayer {
 
   public isCurrentlyPlaying(key?: string): boolean {
     if (!this.isPlaying) return false;
-    return key ? this.activeKey === key : true;
+    if (key && this.activeKey !== key) return false;
+
+    // Check if HTML5 audio is actively playing or loading
+    if (this.currentAudio) {
+      return !this.currentAudio.ended;
+    }
+    // Check if Web Speech API is actively speaking
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (this.currentUtterance && window.speechSynthesis.speaking) {
+        return true;
+      }
+    }
+    return this.isPlaying;
   }
 
   /**
@@ -166,58 +178,87 @@ class MultilingualSpeechPlayer {
     }
 
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.cancel();
+      return new Promise<void>((resolve) => {
+        let keepAliveTimer: any = null;
 
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.rate = options.rate || 0.95;
-        utterance.pitch = 1.0;
-        utterance.lang = langCode;
-
-        // Try to match best voice
-        const voices = window.speechSynthesis.getVoices();
-        const lowerLang = language.toLowerCase();
-        const lowerCode = langCode.toLowerCase().replace('_', '-');
-
-        const matchedVoice = voices.find((v) => {
-          const vLang = v.lang.toLowerCase().replace('_', '-');
-          const vName = v.name.toLowerCase();
-          return (
-            vLang === lowerCode ||
-            vLang.startsWith(lowerCode.slice(0, 2)) ||
-            vName.includes(lowerLang)
-          );
-        });
-
-        if (matchedVoice) {
-          utterance.voice = matchedVoice;
-        }
-
-        utterance.onend = () => {
-          if (this.activePlaybackId === currentId) {
-            const callbacks = Array.from(this.onEndCallbacks);
-            this.stop();
-            callbacks.forEach((cb) => cb());
+        const cleanup = () => {
+          if (keepAliveTimer) {
+            clearInterval(keepAliveTimer);
+            keepAliveTimer = null;
           }
         };
 
-        utterance.onerror = (e) => {
-          if (this.activePlaybackId === currentId) {
-            console.warn('[SpeechPlayer] Web Speech API playback error:', e);
-            this.stop();
-            options.onError?.(e);
-          }
-        };
+        try {
+          window.speechSynthesis.cancel();
 
-        this.currentUtterance = utterance;
-        window.speechSynthesis.speak(utterance);
-      } catch (err) {
-        if (this.activePlaybackId === currentId) {
-          console.error('[SpeechPlayer] Synthesis error:', err);
-          this.stop();
-          options.onError?.(err);
+          const utterance = new SpeechSynthesisUtterance(cleanText);
+          utterance.rate = options.rate || 0.95;
+          utterance.pitch = 1.0;
+          utterance.lang = langCode;
+
+          // Try to match best voice
+          const voices = window.speechSynthesis.getVoices();
+          const lowerLang = language.toLowerCase();
+          const lowerCode = langCode.toLowerCase().replace('_', '-');
+
+          const matchedVoice = voices.find((v) => {
+            const vLang = v.lang.toLowerCase().replace('_', '-');
+            const vName = v.name.toLowerCase();
+            return (
+              vLang === lowerCode ||
+              vLang.startsWith(lowerCode.slice(0, 2)) ||
+              vName.includes(lowerLang)
+            );
+          });
+
+          if (matchedVoice) {
+            utterance.voice = matchedVoice;
+          }
+
+          utterance.onend = () => {
+            cleanup();
+            if (this.activePlaybackId === currentId) {
+              const callbacks = Array.from(this.onEndCallbacks);
+              this.stop();
+              callbacks.forEach((cb) => cb());
+            }
+            resolve();
+          };
+
+          utterance.onerror = (e) => {
+            cleanup();
+            if (this.activePlaybackId === currentId) {
+              console.warn('[SpeechPlayer] Web Speech API playback error:', e);
+              this.stop();
+              options.onError?.(e);
+            }
+            resolve();
+          };
+
+          // Chromium speech synthesis keepalive to prevent silent pause on long utterances
+          keepAliveTimer = setInterval(() => {
+            if (this.activePlaybackId !== currentId || !this.isPlaying) {
+              cleanup();
+              return;
+            }
+            if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+              window.speechSynthesis.pause();
+              window.speechSynthesis.resume();
+            }
+          }, 10000);
+
+          this.currentUtterance = utterance;
+          window.speechSynthesis.speak(utterance);
+        } catch (err) {
+          cleanup();
+          if (this.activePlaybackId === currentId) {
+            console.error('[SpeechPlayer] Synthesis error:', err);
+            this.stop();
+            options.onError?.(err);
+          }
+          resolve();
         }
-      }
+      });
     } else {
       this.stop();
     }
