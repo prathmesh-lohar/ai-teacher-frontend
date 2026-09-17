@@ -24,6 +24,7 @@ export default function Home() {
   const { user, loading, isAuthenticated, isApproved } = useAuth();
   const [currentTab, setTab] = useState('dashboard');
   const [selectedReportSessionId, setSelectedReportSessionId] = useState<string | null>(null);
+  const [isReportDetailOpen, setIsReportDetailOpen] = useState(false);
   const [talkTopic, setTalkTopic] = useState<string>('Daily Casual Talk');
   const [talkMode, setTalkMode] = useState<'voice' | 'text' | 'video' | 'hub'>('hub');
   const [talkLaunchTrigger, setTalkLaunchTrigger] = useState<number>(0);
@@ -108,9 +109,17 @@ export default function Home() {
 
       {/* Main Content Workspace Area (Full Width) */}
       <main className="flex-1 flex flex-col min-w-0 transition-all duration-500 overflow-hidden relative glass-card rounded-[24px]">
-        {currentTab !== 'talk' && <Header onOpenProfile={() => setTab('profile')} />}
+        {currentTab !== 'talk' && !(currentTab === 'reports' && isReportDetailOpen) && (
+          <Header onOpenProfile={() => setTab('profile')} />
+        )}
         
-        <div className={currentTab === 'talk' ? "flex-1 w-full h-full overflow-hidden p-0 custom-scrollbar flex flex-col pb-16 lg:pb-0" : "flex-1 overflow-y-auto px-6 lg:px-8 pb-24 lg:pb-8 custom-scrollbar"}>
+        <div 
+          className={
+            currentTab === 'talk' || (currentTab === 'reports' && isReportDetailOpen)
+              ? "flex-1 w-full h-full overflow-hidden p-0 custom-scrollbar flex flex-col pb-16 lg:pb-0" 
+              : "flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 pb-24 lg:pb-8 custom-scrollbar"
+          }
+        >
           <AnimatePresence mode="wait">
             {/* Dashboard Module */}
             {currentTab === 'dashboard' && (
@@ -175,12 +184,16 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.3 }}
-                className="py-4 min-h-full"
+                className={isReportDetailOpen ? "h-full w-full flex-1 flex flex-col p-0" : "py-4 min-h-full"}
               >
                 <ReportsModule 
                   onStartPractice={(t) => handleStartPractice(t, 'voice')} 
                   initialSessionId={selectedReportSessionId}
-                  onClearInitialSession={() => setSelectedReportSessionId(null)}
+                  onClearInitialSession={() => {
+                    setSelectedReportSessionId(null);
+                    setIsReportDetailOpen(false);
+                  }}
+                  onDetailViewChange={(isOpen) => setIsReportDetailOpen(isOpen)}
                 />
               </motion.div>
             )}

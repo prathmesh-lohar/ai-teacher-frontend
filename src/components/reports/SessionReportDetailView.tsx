@@ -183,145 +183,165 @@ export function SessionReportDetailView({
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-950 text-white rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl relative">
-      {/* Top Navigation & Session Header */}
-      <div className="px-5 sm:px-8 py-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0 flex-wrap backdrop-blur-md z-20">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              speechPlayer.stop();
-              onBack();
-            }}
-            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-all border border-slate-700 cursor-pointer flex items-center gap-1.5 text-xs font-bold shadow-sm"
-          >
-            <ArrowLeft size={16} />
-            <span>Reports Hub</span>
-          </button>
+    <div className="h-full w-full flex flex-col bg-slate-950 text-white rounded-none sm:rounded-[2rem] overflow-hidden border-0 sm:border sm:border-slate-800 shadow-2xl relative">
+      {/* Top Sticky Navigation & Session Header */}
+      <div className="sticky top-0 z-30 px-3 sm:px-6 lg:px-8 py-3 bg-slate-900/95 border-b border-slate-800/80 backdrop-blur-md shrink-0 shadow-sm">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              onClick={() => {
+                speechPlayer.stop();
+                onBack();
+              }}
+              className="p-2 sm:px-3 sm:py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-xl transition-all border border-slate-700/80 cursor-pointer flex items-center gap-1.5 text-xs font-bold shrink-0 shadow-sm"
+              title="Return to Reports Hub"
+            >
+              <ArrowLeft size={16} />
+              <span className="hidden xs:inline sm:inline">Hub</span>
+            </button>
 
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base sm:text-xl font-black text-white">{topicName}</h1>
-              <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
-                endReason === 'max_duration_reached'
-                  ? 'bg-blue-500/20 border-blue-400/30 text-blue-300'
-                  : endReason === 'inactivity_timeout'
-                  ? 'bg-amber-500/20 border-amber-400/30 text-amber-300'
-                  : 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300'
-              }`}>
-                {endReason === 'max_duration_reached'
-                  ? '⏱️ 5-Min Cap'
-                  : endReason === 'inactivity_timeout'
-                  ? '🔇 30s Silence Auto-End'
-                  : '🎉 Completed'}
-              </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 className="text-sm sm:text-lg font-black text-white truncate max-w-[130px] xs:max-w-[200px] sm:max-w-md">
+                  {topicName}
+                </h1>
+                <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border shrink-0 ${
+                  endReason === 'max_duration_reached'
+                    ? 'bg-blue-500/20 border-blue-400/30 text-blue-300'
+                    : endReason === 'inactivity_timeout'
+                    ? 'bg-amber-500/20 border-amber-400/30 text-amber-300'
+                    : 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300'
+                }`}>
+                  {endReason === 'max_duration_reached'
+                    ? '⏱️ 5m'
+                    : endReason === 'inactivity_timeout'
+                    ? '🔇 Auto'
+                    : '🎉 Completed'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 flex items-center gap-1.5 sm:gap-2 truncate">
+                <span>{formatDate(session?.started_at || report.created_at)}</span>
+                <span>•</span>
+                <span><strong className="text-slate-200">{formatDuration(durationSecs)}</strong></span>
+                <span>•</span>
+                <span className="text-amber-400 font-bold">{allMistakes.length} mistakes</span>
+              </p>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
-              <span>{formatDate(session?.started_at || report.created_at)}</span>
-              <span>•</span>
-              <span>Duration: <strong className="text-slate-200">{formatDuration(durationSecs)}</strong></span>
-              <span>•</span>
-              <span>Mistakes: <strong className="text-amber-400 font-bold">{allMistakes.length}</strong></span>
-            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onStartPractice && (
+              <Button
+                variant="primary"
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl shadow-md shadow-blue-600/30 flex items-center gap-1.5"
+                onClick={() => {
+                  speechPlayer.stop();
+                  onStartPractice(topicName);
+                }}
+              >
+                <RotateCcw size={13} />
+                <span className="hidden sm:inline">Practice Again</span>
+                <span className="sm:hidden">Retry</span>
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Quick Jump Buttons & Practice Again */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="hidden md:flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60 text-xs">
+        {/* Quick Navigation Jump Tabs for Mobile & Desktop */}
+        <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-800/60 overflow-x-auto text-[11px] no-scrollbar">
+          <button
+            onClick={() => scrollToSection('sec-scorecard')}
+            className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors font-semibold shrink-0 cursor-pointer border border-slate-700/50 flex items-center gap-1"
+          >
+            <span>📊 Scorecard</span>
+          </button>
+          <button
+            onClick={() => scrollToSection('sec-strengths')}
+            className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors font-semibold shrink-0 cursor-pointer border border-slate-700/50 flex items-center gap-1"
+          >
+            <span>🎯 Plan</span>
+          </button>
+          {report.question_feedback && report.question_feedback.length > 0 && (
             <button
-              onClick={() => scrollToSection('sec-scorecard')}
-              className="px-2.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors font-semibold cursor-pointer"
+              onClick={() => scrollToSection('sec-interview-feedback')}
+              className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors font-semibold shrink-0 cursor-pointer border border-slate-700/50 flex items-center gap-1"
             >
-              📊 Scorecard
+              <span>💼 Interview ({report.question_feedback.length})</span>
             </button>
-            <button
-              onClick={() => scrollToSection('sec-conversation')}
-              className="px-2.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors font-semibold cursor-pointer"
-            >
-              💬 Conversation & Corrections ({turns.length})
-            </button>
-          </div>
-
-          {onStartPractice && (
-            <Button
-              variant="primary"
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md shadow-blue-600/30 flex items-center gap-2"
-              onClick={() => {
-                speechPlayer.stop();
-                onStartPractice(topicName);
-              }}
-            >
-              <RotateCcw size={14} />
-              <span>Practice Again</span>
-            </Button>
           )}
+          <button
+            onClick={() => scrollToSection('sec-conversation')}
+            className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors font-semibold shrink-0 cursor-pointer border border-slate-700/50 flex items-center gap-1"
+          >
+            <span>💬 Dialogue & Corrections ({turns.length})</span>
+          </button>
         </div>
       </div>
 
       {/* Unified Single Scrollable Body */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8 space-y-10">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-3.5 sm:p-6 lg:p-8 space-y-6 sm:space-y-10">
         
         {/* ======================================================== */}
         {/* SECTION 1: COMPREHENSIVE CEFR SCORECARD & METRICS        */}
         {/* ======================================================== */}
-        <section id="sec-scorecard" className="space-y-6">
+        <section id="sec-scorecard" className="space-y-4 sm:space-y-6">
           <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-blue-400">
             <Award size={16} />
             <span>1. Overall Assessment & CEFR Scorecard</span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
-            {/* Overall Score Circle */}
-            <div className="lg:col-span-4 flex flex-col items-center justify-center text-center p-4 bg-slate-900/80 rounded-2xl border border-slate-800 relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 mb-3 shadow-md">
-                <Award size={32} />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
+            {/* Overall Score Circle Card */}
+            <div className="lg:col-span-4 flex flex-col items-center justify-center text-center p-4 sm:p-6 bg-slate-900/80 rounded-2xl border border-slate-800 relative z-10">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 mb-2 sm:mb-3 shadow-md">
+                <Award size={28} className="sm:w-8 sm:h-8" />
               </div>
-              <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+              <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
                 Overall Speaking Score
               </span>
               <div className="flex items-baseline gap-1 mt-1 mb-2">
-                <span className={`text-5xl sm:text-6xl font-black tracking-tight ${getScoreColor(report.overall_score)}`}>
+                <span className={`text-4xl sm:text-6xl font-black tracking-tight ${getScoreColor(report.overall_score)}`}>
                   {report.overall_score}
                 </span>
-                <span className="text-sm font-bold text-slate-400">/100</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-400">/100</span>
               </div>
-              <span className={`text-xs font-bold px-3 py-1 rounded-full border ${getScoreBadgeClass(report.overall_score)}`}>
+              <span className={`text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full border ${getScoreBadgeClass(report.overall_score)}`}>
                 {report.overall_score >= 80 ? 'CEFR C1 • Proficient Spoken' : report.overall_score >= 65 ? 'CEFR B2 • Competent Conversational' : 'CEFR B1 • Developing Fluency'}
               </span>
             </div>
 
             {/* Sub-Score Bars & Examiner Summary */}
-            <div className="lg:col-span-8 flex flex-col justify-between space-y-4 relative z-10">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
-                  <span className="text-[11px] font-bold text-slate-400 block">Grammar</span>
-                  <span className="text-xl font-black text-white">{report.grammar_score}%</span>
-                  <div className="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
+            <div className="lg:col-span-8 flex flex-col justify-between space-y-3 sm:space-y-4 relative z-10">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                <div className="bg-slate-900/90 p-3 sm:p-3.5 rounded-2xl border border-slate-800">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 block">Grammar</span>
+                  <span className="text-lg sm:text-xl font-black text-white">{report.grammar_score}%</span>
+                  <div className="w-full bg-slate-800 h-1.5 sm:h-2 rounded-full mt-2 overflow-hidden">
                     <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${report.grammar_score}%` }} />
                   </div>
                 </div>
 
-                <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
-                  <span className="text-[11px] font-bold text-slate-400 block">Vocabulary</span>
-                  <span className="text-xl font-black text-white">{report.vocabulary_score}%</span>
-                  <div className="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
+                <div className="bg-slate-900/90 p-3 sm:p-3.5 rounded-2xl border border-slate-800">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 block">Vocabulary</span>
+                  <span className="text-lg sm:text-xl font-black text-white">{report.vocabulary_score}%</span>
+                  <div className="w-full bg-slate-800 h-1.5 sm:h-2 rounded-full mt-2 overflow-hidden">
                     <div className="bg-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: `${report.vocabulary_score}%` }} />
                   </div>
                 </div>
 
-                <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
-                  <span className="text-[11px] font-bold text-slate-400 block">Fluency</span>
-                  <span className="text-xl font-black text-white">{report.fluency_score}%</span>
-                  <div className="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
+                <div className="bg-slate-900/90 p-3 sm:p-3.5 rounded-2xl border border-slate-800">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 block">Fluency</span>
+                  <span className="text-lg sm:text-xl font-black text-white">{report.fluency_score}%</span>
+                  <div className="w-full bg-slate-800 h-1.5 sm:h-2 rounded-full mt-2 overflow-hidden">
                     <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${report.fluency_score}%` }} />
                   </div>
                 </div>
 
-                <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
-                  <span className="text-[11px] font-bold text-slate-400 block">Confidence</span>
-                  <span className="text-xl font-black text-white">{report.confidence_score}%</span>
-                  <div className="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
+                <div className="bg-slate-900/90 p-3 sm:p-3.5 rounded-2xl border border-slate-800">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 block">Confidence</span>
+                  <span className="text-lg sm:text-xl font-black text-white">{report.confidence_score}%</span>
+                  <div className="w-full bg-slate-800 h-1.5 sm:h-2 rounded-full mt-2 overflow-hidden">
                     <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${report.confidence_score}%` }} />
                   </div>
                 </div>
@@ -329,7 +349,7 @@ export function SessionReportDetailView({
 
               {/* Examiner Summary */}
               {report.summary && (
-                <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800 text-xs text-slate-200 leading-relaxed italic">
+                <div className="bg-slate-900/70 p-3.5 sm:p-4 rounded-2xl border border-slate-800 text-xs text-slate-200 leading-relaxed italic">
                   <span className="text-[10px] font-extrabold text-blue-300 uppercase tracking-wider block not-italic mb-1">
                     Examiner Assessment Summary
                   </span>
@@ -342,10 +362,10 @@ export function SessionReportDetailView({
           </div>
 
           {/* Strengths, Recommendations & Practice Plan Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div id="sec-strengths" className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Key Strengths */}
-            <div className="bg-slate-900/90 p-5 rounded-3xl border border-slate-800 space-y-3">
-              <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+            <div className="bg-slate-900/90 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-3">
+              <h3 className="text-xs sm:text-sm font-bold text-emerald-400 flex items-center gap-2">
                 <CheckCircle2 size={16} />
                 <span>What You Did Well</span>
               </h3>
@@ -364,8 +384,8 @@ export function SessionReportDetailView({
             </div>
 
             {/* Actionable Recommendations */}
-            <div className="bg-slate-900/90 p-5 rounded-3xl border border-slate-800 space-y-3">
-              <h3 className="text-sm font-bold text-blue-400 flex items-center gap-2">
+            <div className="bg-slate-900/90 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-3">
+              <h3 className="text-xs sm:text-sm font-bold text-blue-400 flex items-center gap-2">
                 <TrendingUp size={16} />
                 <span>Growth & Improvement Areas</span>
               </h3>
@@ -384,8 +404,8 @@ export function SessionReportDetailView({
             </div>
 
             {/* 3-Day Action Plan */}
-            <div className="bg-slate-900/90 p-5 rounded-3xl border border-indigo-500/20 bg-indigo-950/20 space-y-3">
-              <h3 className="text-sm font-bold text-indigo-300 flex items-center gap-2">
+            <div className="bg-slate-900/90 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-indigo-500/20 bg-indigo-950/20 space-y-3">
+              <h3 className="text-xs sm:text-sm font-bold text-indigo-300 flex items-center gap-2">
                 <Sparkles size={16} />
                 <span>Suggested 3-Day Action Plan</span>
               </h3>
@@ -409,7 +429,7 @@ export function SessionReportDetailView({
         {/* INTERVIEW QUESTIONS & COACHING FEEDBACK (IF PRESENT)     */}
         {/* ======================================================== */}
         {report.question_feedback && report.question_feedback.length > 0 && (
-          <section id="sec-interview-feedback" className="space-y-6 pt-4 border-t border-slate-800/80">
+          <section id="sec-interview-feedback" className="space-y-4 sm:space-y-6 pt-4 border-t border-slate-800/80">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-indigo-400">
                 <Sparkles size={16} />
@@ -420,27 +440,27 @@ export function SessionReportDetailView({
               </span>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {report.question_feedback.map((qItem, qIdx) => {
                 const score = qItem.score || 0;
                 const scoreColor = score >= 7 ? 'text-emerald-400' : score >= 4 ? 'text-amber-400' : 'text-red-400';
                 const scoreBg = score >= 7 ? 'bg-emerald-500/10 border-emerald-500/30' : score >= 4 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-red-500/10 border-red-500/30';
 
                 return (
-                  <div key={qIdx} className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 space-y-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        <span className="w-7 h-7 rounded-xl bg-indigo-500/20 text-indigo-300 text-xs font-black flex items-center justify-center shrink-0 mt-0.5 border border-indigo-500/30">
+                  <div key={qIdx} className="bg-slate-900/90 rounded-2xl border border-slate-800 p-3.5 sm:p-5 space-y-3">
+                    <div className="flex items-start justify-between gap-3 sm:gap-4">
+                      <div className="flex items-start gap-2.5 sm:gap-3 flex-1 min-w-0">
+                        <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-indigo-500/20 text-indigo-300 text-xs font-black flex items-center justify-center shrink-0 mt-0.5 border border-indigo-500/30">
                           Q{qIdx + 1}
                         </span>
-                        <h4 className="text-sm sm:text-base font-bold text-white leading-snug">{qItem.question}</h4>
+                        <h4 className="text-xs sm:text-base font-bold text-white leading-snug">{qItem.question}</h4>
                       </div>
-                      <span className={`text-xs font-black px-3 py-1 rounded-xl border ${scoreBg} ${scoreColor} shrink-0`}>
+                      <span className={`text-xs font-black px-2.5 py-1 rounded-xl border ${scoreBg} ${scoreColor} shrink-0`}>
                         {score}/10
                       </span>
                     </div>
 
-                    <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 space-y-1">
+                    <div className="bg-slate-950/60 p-3 sm:p-3.5 rounded-xl border border-slate-800/80 space-y-1">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Candidate Spoken Response</span>
                       <p className="text-xs sm:text-sm text-slate-300 italic">
                         "{qItem.answer || '(No answer provided)'}"
@@ -448,9 +468,9 @@ export function SessionReportDetailView({
                     </div>
 
                     {qItem.tip && (
-                      <div className="bg-indigo-950/30 border border-indigo-500/25 rounded-xl p-3.5 flex items-start gap-2.5">
+                      <div className="bg-indigo-950/30 border border-indigo-500/25 rounded-xl p-3 sm:p-3.5 flex items-start gap-2.5">
                         <TrendingUp size={15} className="text-indigo-400 shrink-0 mt-0.5" />
-                        <div className="space-y-0.5 flex-1">
+                        <div className="space-y-0.5 flex-1 min-w-0">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-300 block">Coaching Tip for Next Time</span>
                           <p className="text-xs text-slate-200 leading-relaxed">{qItem.tip}</p>
                         </div>
@@ -466,7 +486,7 @@ export function SessionReportDetailView({
         {/* ======================================================== */}
         {/* SECTION 2: COMPLETE CONVERSATION CHAT WITH CORRECTIONS   */}
         {/* ======================================================== */}
-        <section id="sec-conversation" className="space-y-6 pt-4 border-t border-slate-800/80">
+        <section id="sec-conversation" className="space-y-4 sm:space-y-6 pt-4 border-t border-slate-800/80">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-blue-400">
               <MessageSquare size={16} />
@@ -477,7 +497,7 @@ export function SessionReportDetailView({
             </span>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
             {turns.map((turn, tIdx) => {
               const isUser = turn.speaker === 'user';
               const hasMistakes = isUser && turn.mistakes && turn.mistakes.length > 0;
@@ -485,7 +505,7 @@ export function SessionReportDetailView({
               return (
                 <div
                   key={turn.id || tIdx}
-                  className={`rounded-2xl border p-4 sm:p-5 transition-all ${
+                  className={`rounded-2xl border p-3.5 sm:p-5 transition-all ${
                     isUser
                       ? hasMistakes
                         ? 'bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/20 border-amber-500/40 shadow-lg'
@@ -494,7 +514,7 @@ export function SessionReportDetailView({
                   }`}
                 >
                   {/* Turn Header */}
-                  <div className="flex items-center justify-between gap-3 mb-2.5 pb-2 border-b border-slate-800/80">
+                  <div className="flex items-center justify-between gap-2 sm:gap-3 mb-2.5 pb-2 border-b border-slate-800/80 flex-wrap">
                     <div className="flex items-center gap-2">
                       <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-md ${
                         isUser
@@ -517,7 +537,7 @@ export function SessionReportDetailView({
 
                     <button
                       onClick={() => handlePlaySpeech(turn.transcript, `chat-turn-${turn.id || tIdx}`)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0 cursor-pointer ${
                         playingAudioKey === `chat-turn-${turn.id || tIdx}`
                           ? 'bg-blue-600 text-white border-blue-400'
                           : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700'
@@ -538,13 +558,13 @@ export function SessionReportDetailView({
                   </div>
 
                   {/* Utterance Text Bubble */}
-                  <p className="text-sm text-slate-100 font-medium leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-100 font-medium leading-relaxed">
                     "{turn.transcript}"
                   </p>
 
                   {/* Attached Mistakes and Corrections for this specific turn */}
                   {hasMistakes && (
-                    <div className="mt-4 pt-3 border-t border-slate-800/90 space-y-3">
+                    <div className="mt-3.5 pt-3 border-t border-slate-800/90 space-y-3">
                       <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
                         <Sparkles size={14} className="text-amber-400" />
                         <span>Linguistic Feedback & Correction for this turn:</span>
@@ -554,7 +574,7 @@ export function SessionReportDetailView({
                         {turn.mistakes?.map((mistake: LanguageMistake, mIdx: number) => (
                           <div
                             key={mistake.id || mIdx}
-                            className="bg-slate-950/90 p-4 rounded-xl border border-amber-500/30 space-y-3 shadow-md"
+                            className="bg-slate-950/90 p-3.5 sm:p-4 rounded-xl border border-amber-500/30 space-y-3 shadow-md"
                           >
                             {/* Category Header */}
                             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -576,7 +596,7 @@ export function SessionReportDetailView({
                                     'en-US'
                                   )
                                 }
-                                className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/25 transition-colors"
+                                className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/25 transition-colors cursor-pointer shrink-0"
                               >
                                 <Volume2 size={12} />
                                 <span>Hear Corrected English</span>
@@ -589,7 +609,7 @@ export function SessionReportDetailView({
                                 <span className="text-[10px] font-black text-red-400 uppercase tracking-wider block mb-1">
                                   ❌ What you said:
                                 </span>
-                                <p className="text-red-200 line-through font-semibold text-sm">
+                                <p className="text-red-200 line-through font-semibold text-xs sm:text-sm">
                                   "{mistake.original_text}"
                                 </p>
                               </div>
@@ -598,7 +618,7 @@ export function SessionReportDetailView({
                                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider block mb-1">
                                   ✅ Corrected English:
                                 </span>
-                                <p className="text-emerald-200 font-bold text-sm">
+                                <p className="text-emerald-200 font-bold text-xs sm:text-sm">
                                   "{mistake.corrected_text}"
                                 </p>
                               </div>
@@ -619,8 +639,8 @@ export function SessionReportDetailView({
 
                             {/* Native Language Explanation */}
                             {mistake.native_explanation && (
-                              <div className="bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-slate-900 p-3.5 rounded-xl border border-indigo-500/30 text-xs space-y-1.5">
-                                <div className="flex items-center justify-between gap-2">
+                              <div className="bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-slate-900 p-3 sm:p-3.5 rounded-xl border border-indigo-500/30 text-xs space-y-1.5">
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
                                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
                                     <Languages size={13} className="text-indigo-400" />
                                     <span>Native Language Explanation (मातृभाषा व्याख्या):</span>
@@ -634,7 +654,7 @@ export function SessionReportDetailView({
                                         'hi-IN'
                                       )
                                     }
-                                    className="text-[10px] font-bold text-indigo-300 hover:text-indigo-200 flex items-center gap-1 bg-indigo-500/20 px-2 py-0.5 rounded-md border border-indigo-400/30 transition-colors"
+                                    className="text-[10px] font-bold text-indigo-300 hover:text-indigo-200 flex items-center gap-1 bg-indigo-500/20 px-2 py-0.5 rounded-md border border-indigo-400/30 transition-colors cursor-pointer shrink-0"
                                   >
                                     <Volume2 size={11} />
                                     <span>सुनें (Listen)</span>
@@ -648,9 +668,9 @@ export function SessionReportDetailView({
 
                             {/* Band 8 Alternative */}
                             {mistake.better_alternative && (
-                              <div className="bg-cyan-950/20 p-2.5 rounded-xl border border-cyan-500/30 text-xs flex items-start gap-2">
+                              <div className="bg-cyan-950/20 p-2.5 sm:p-3 rounded-xl border border-cyan-500/30 text-xs flex items-start gap-2">
                                 <Sparkles size={14} className="text-cyan-400 shrink-0 mt-0.5" />
-                                <div>
+                                <div className="min-w-0">
                                   <span className="text-[10px] font-bold text-cyan-300 block">Band 8+ / C1 Alternative:</span>
                                   <p className="text-cyan-100 font-semibold">{mistake.better_alternative}</p>
                                 </div>
@@ -670,28 +690,30 @@ export function SessionReportDetailView({
       </div>
 
       {/* Footer Return Bar */}
-      <div className="px-6 py-3.5 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between gap-3 shrink-0 flex-wrap">
+      <div className="px-3.5 sm:px-6 py-2.5 sm:py-3 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between gap-2 shrink-0">
         <button
           onClick={() => {
             speechPlayer.stop();
             onBack();
           }}
-          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-colors"
+          className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
         >
-          Return to Reports Hub
+          <ArrowLeft size={14} />
+          <span>Reports Hub</span>
         </button>
 
         {onStartPractice && (
           <Button
             variant="primary"
             size="sm"
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md shadow-blue-600/30"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3 sm:px-4 py-2 rounded-xl shadow-md shadow-blue-600/30 flex items-center gap-1.5"
             onClick={() => {
               speechPlayer.stop();
               onStartPractice(topicName);
             }}
           >
-            Start Another Practice Session
+            <RotateCcw size={14} />
+            <span>Practice Again</span>
           </Button>
         )}
       </div>

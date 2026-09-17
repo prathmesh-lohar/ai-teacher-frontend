@@ -31,9 +31,15 @@ interface ReportsModuleProps {
   onStartPractice?: (topic?: string) => void;
   initialSessionId?: string | null;
   onClearInitialSession?: () => void;
+  onDetailViewChange?: (isOpen: boolean) => void;
 }
 
-export function ReportsModule({ onStartPractice, initialSessionId, onClearInitialSession }: ReportsModuleProps) {
+export function ReportsModule({ 
+  onStartPractice, 
+  initialSessionId, 
+  onClearInitialSession,
+  onDetailViewChange 
+}: ReportsModuleProps) {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [reports, setReports] = useState<PracticeSessionRecord[]>([]);
   const [stats, setStats] = useState<ReportsResponse['stats']>({
@@ -55,8 +61,9 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
   useEffect(() => {
     if (initialSessionId) {
       setSelectedSessionId(initialSessionId);
+      onDetailViewChange?.(true);
     }
-  }, [initialSessionId]);
+  }, [initialSessionId, onDetailViewChange]);
   const [selectedReportDetail, setSelectedReportDetail] = useState<{
     session: PracticeSessionRecord;
     report: SessionReportData;
@@ -103,6 +110,7 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
   // Fetch full report & transcript details when a session is selected
   const handleSelectReport = async (sessionId: string) => {
     setSelectedSessionId(sessionId);
+    onDetailViewChange?.(true);
     setLoadingDetail(true);
     try {
       const detail = await apiFetch<{
@@ -215,15 +223,18 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
   // If a report is selected, render the dedicated full-page Report & Transcript View!
   if (selectedSessionId) {
     return (
-      <SessionReportDetailView
-        sessionId={selectedSessionId}
-        onBack={() => {
-          setSelectedSessionId(null);
-          onClearInitialSession?.();
-          fetchReports();
-        }}
-        onStartPractice={onStartPractice}
-      />
+      <div className="w-full h-full flex-1 flex flex-col min-h-0">
+        <SessionReportDetailView
+          sessionId={selectedSessionId}
+          onBack={() => {
+            setSelectedSessionId(null);
+            onClearInitialSession?.();
+            onDetailViewChange?.(false);
+            fetchReports();
+          }}
+          onStartPractice={onStartPractice}
+        />
+      </div>
     );
   }
 
@@ -265,54 +276,54 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
       </div> */}
 
       {/* Analytics Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-gray-500">Total Sessions</span>
-            <p className="text-2xl sm:text-3xl font-black text-gray-900">{stats.total_sessions}</p>
-            <span className="text-[10px] font-bold text-emerald-600">All Completed Sessions</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+          <div className="space-y-0.5 sm:space-y-1">
+            <span className="text-[11px] sm:text-xs font-semibold text-gray-500">Total Sessions</span>
+            <p className="text-xl sm:text-3xl font-black text-gray-900">{stats.total_sessions}</p>
+            <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 block">All Completed</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[var(--primary)] flex items-center justify-center">
-            <BarChart3 size={24} />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-gray-500">Practice Time</span>
-            <p className="text-2xl sm:text-3xl font-black text-gray-900">{stats.total_minutes}m</p>
-            <span className="text-[10px] font-bold text-blue-600">Total Speaking Time</span>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-            <Clock size={24} />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-50 text-[var(--primary)] flex items-center justify-center shrink-0">
+            <BarChart3 size={20} className="sm:w-6 sm:h-6" />
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-gray-500">Avg Overall Score</span>
-            <p className="text-2xl sm:text-3xl font-black text-emerald-600">{stats.avg_overall_score}%</p>
-            <span className="text-[10px] font-bold text-emerald-600">CEFR Benchmark</span>
+        <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+          <div className="space-y-0.5 sm:space-y-1">
+            <span className="text-[11px] sm:text-xs font-semibold text-gray-500">Practice Time</span>
+            <p className="text-xl sm:text-3xl font-black text-gray-900">{stats.total_minutes}m</p>
+            <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 block">Speaking Time</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <Award size={24} />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <Clock size={20} className="sm:w-6 sm:h-6" />
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-gray-500">Avg Fluency</span>
-            <p className="text-2xl sm:text-3xl font-black text-blue-600">{stats.avg_fluency_score}%</p>
-            <span className="text-[10px] font-bold text-blue-600">Spoken Naturalness</span>
+        <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+          <div className="space-y-0.5 sm:space-y-1">
+            <span className="text-[11px] sm:text-xs font-semibold text-gray-500">Avg Overall Score</span>
+            <p className="text-xl sm:text-3xl font-black text-emerald-600">{stats.avg_overall_score}%</p>
+            <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 block">CEFR Benchmark</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
-            <TrendingUp size={24} />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <Award size={20} className="sm:w-6 sm:h-6" />
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+          <div className="space-y-0.5 sm:space-y-1">
+            <span className="text-[11px] sm:text-xs font-semibold text-gray-500">Avg Fluency</span>
+            <p className="text-xl sm:text-3xl font-black text-blue-600">{stats.avg_fluency_score}%</p>
+            <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 block">Naturalness</span>
+          </div>
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0">
+            <TrendingUp size={20} className="sm:w-6 sm:h-6" />
           </div>
         </div>
       </div>
 
       {/* Filter and Search Toolbar */}
-      <div className="sticky top-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-gray-200/80 shadow-sm">
+      <div className="sticky top-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 bg-white/95 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl border border-gray-200/80 shadow-sm">
         <div className="relative flex-1 w-full">
           <Search size={16} className="text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -324,12 +335,12 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           {/* Topic Filter */}
           <select
             value={selectedTopicFilter}
             onChange={(e) => setSelectedTopicFilter(e.target.value)}
-            className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 outline-none cursor-pointer"
+            className="bg-gray-50 border border-gray-100 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-bold text-gray-700 outline-none cursor-pointer shrink-0"
           >
             <option value="all">All Topics</option>
             <option value="ielts">IELTS Speaking</option>
@@ -342,9 +353,9 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
           <select
             value={selectedScoreFilter}
             onChange={(e) => setSelectedScoreFilter(e.target.value)}
-            className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 outline-none cursor-pointer"
+            className="bg-gray-50 border border-gray-100 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-bold text-gray-700 outline-none cursor-pointer shrink-0"
           >
-            <option value="all">All Sessions ({reports.length})</option>
+            <option value="all">All ({reports.length})</option>
             <option value="high">Score 80%+ (Proficient)</option>
             <option value="medium">Score 65-79% (Competent)</option>
             <option value="low">Score &lt; 65% (Developing)</option>
@@ -354,7 +365,7 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
           <button
             onClick={fetchReports}
             title="Refresh Reports"
-            className="p-2 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl border border-gray-100 transition-colors"
+            className="p-2 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl border border-gray-100 transition-colors shrink-0 cursor-pointer"
           >
             <RotateCcw size={15} />
           </button>
