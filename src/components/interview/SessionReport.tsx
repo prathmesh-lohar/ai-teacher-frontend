@@ -97,6 +97,16 @@ function QuestionFeedbackCard({ item, index }: { item: QuestionFeedback; index: 
                 <p className="text-sm text-slate-300">{item.tip}</p>
               </div>
             )}
+            {item.ideal_answer && (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2.5 space-y-1">
+                <p className="text-xs text-emerald-300 font-medium flex items-center gap-1.5">
+                  <Star size={11} className="text-emerald-400" /> Ideal Model Answer (STAR Method)
+                </p>
+                <p className="text-sm text-emerald-100 leading-relaxed font-medium">
+                  {item.ideal_answer}
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

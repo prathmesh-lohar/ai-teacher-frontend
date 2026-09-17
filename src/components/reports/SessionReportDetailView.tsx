@@ -49,7 +49,7 @@ export function SessionReportDetailView({
   const [report, setReport] = useState<SessionReportData | null>(initialData?.report || null);
   const [turns, setTurns] = useState<ConversationTurn[]>(initialData?.turns || []);
   const [loading, setLoading] = useState(!initialData?.report);
-  
+
   // Audio playback state
   const [playingAudioKey, setPlayingAudioKey] = useState<string | null>(null);
 
@@ -205,18 +205,17 @@ export function SessionReportDetailView({
                 <h1 className="text-sm sm:text-lg font-black text-white truncate max-w-[130px] xs:max-w-[200px] sm:max-w-md">
                   {topicName}
                 </h1>
-                <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border shrink-0 ${
-                  endReason === 'max_duration_reached'
-                    ? 'bg-blue-500/20 border-blue-400/30 text-blue-300'
-                    : endReason === 'inactivity_timeout'
+                <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border shrink-0 ${endReason === 'max_duration_reached'
+                  ? 'bg-blue-500/20 border-blue-400/30 text-blue-300'
+                  : endReason === 'inactivity_timeout'
                     ? 'bg-amber-500/20 border-amber-400/30 text-amber-300'
                     : 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300'
-                }`}>
+                  }`}>
                   {endReason === 'max_duration_reached'
                     ? '⏱️ 5m'
                     : endReason === 'inactivity_timeout'
-                    ? '🔇 Auto'
-                    : '🎉 Completed'}
+                      ? '🔇 Auto'
+                      : '🎉 Completed'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 flex items-center gap-1.5 sm:gap-2 truncate">
@@ -281,7 +280,7 @@ export function SessionReportDetailView({
 
       {/* Unified Single Scrollable Body */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-3.5 sm:p-6 lg:p-8 space-y-6 sm:space-y-10">
-        
+
         {/* ======================================================== */}
         {/* SECTION 1: COMPREHENSIVE CEFR SCORECARD & METRICS        */}
         {/* ======================================================== */}
@@ -476,6 +475,38 @@ export function SessionReportDetailView({
                         </div>
                       </div>
                     )}
+
+                    {/* Ideal Model Answer */}
+                    {qItem.ideal_answer && (
+                      <div className="bg-gradient-to-r from-emerald-950/40 via-teal-950/20 to-slate-900 border border-emerald-500/30 rounded-xl p-3 sm:p-3.5 space-y-2 shadow-sm">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                            <Sparkles size={13} className="text-emerald-400" />
+                            <span>Ideal  Answer (STAR Method / Recommended):</span>
+                          </span>
+                          <button
+                            onClick={() =>
+                              handlePlaySpeech(
+                                qItem.ideal_answer || '',
+                                `interview-ideal-${qIdx}`,
+                                'English',
+                                'en-US'
+                              )
+                            }
+                            className={`text-[10px] font-bold flex items-center gap-1 px-2.5 py-1 rounded-lg border transition-colors cursor-pointer shrink-0 ${playingAudioKey === `interview-ideal-${qIdx}`
+                              ? 'bg-emerald-500 text-white border-emerald-400'
+                              : 'bg-emerald-500/20 text-emerald-300 hover:text-emerald-200 border-emerald-500/30'
+                              }`}
+                          >
+                            <Volume2 size={12} />
+                            <span>{playingAudioKey === `interview-ideal-${qIdx}` ? 'Stop Audio' : 'Listen to Model Answer'}</span>
+                          </button>
+                        </div>
+                        <p className="text-xs sm:text-sm text-emerald-100/95 leading-relaxed font-medium">
+                          {qItem.ideal_answer}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -505,24 +536,22 @@ export function SessionReportDetailView({
               return (
                 <div
                   key={turn.id || tIdx}
-                  className={`rounded-2xl border p-3.5 sm:p-5 transition-all ${
-                    isUser
-                      ? hasMistakes
-                        ? 'bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/20 border-amber-500/40 shadow-lg'
-                        : 'bg-blue-950/20 border-blue-500/30'
-                      : 'bg-slate-900/90 border-slate-800'
-                  }`}
+                  className={`rounded-2xl border p-3.5 sm:p-5 transition-all ${isUser
+                    ? hasMistakes
+                      ? 'bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/20 border-amber-500/40 shadow-lg'
+                      : 'bg-blue-950/20 border-blue-500/30'
+                    : 'bg-slate-900/90 border-slate-800'
+                    }`}
                 >
                   {/* Turn Header */}
                   <div className="flex items-center justify-between gap-2 sm:gap-3 mb-2.5 pb-2 border-b border-slate-800/80 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-md ${
-                        isUser
-                          ? hasMistakes
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                            : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                          : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      }`}>
+                      <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-md ${isUser
+                        ? hasMistakes
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        }`}>
                         {isUser ? 'Student' : 'AI Teacher'}
                       </span>
                       <span className="text-[10px] text-slate-500 font-mono">Turn #{turn.turn_index + 1}</span>
@@ -537,11 +566,10 @@ export function SessionReportDetailView({
 
                     <button
                       onClick={() => handlePlaySpeech(turn.transcript, `chat-turn-${turn.id || tIdx}`)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0 cursor-pointer ${
-                        playingAudioKey === `chat-turn-${turn.id || tIdx}`
-                          ? 'bg-blue-600 text-white border-blue-400'
-                          : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0 cursor-pointer ${playingAudioKey === `chat-turn-${turn.id || tIdx}`
+                        ? 'bg-blue-600 text-white border-blue-400'
+                        : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700'
+                        }`}
                     >
                       {playingAudioKey === `chat-turn-${turn.id || tIdx}` ? (
                         <>

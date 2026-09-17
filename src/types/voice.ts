@@ -75,6 +75,7 @@ export interface SessionReportData {
     answer: string;
     score: number;
     tip: string;
+    ideal_answer?: string;
   }>;
 }
 

@@ -71,6 +71,7 @@ export interface QuestionFeedback {
   answer: string;
   score: number;
   tip: string;
+  ideal_answer?: string;
 }
 
 export interface InterviewReport {
