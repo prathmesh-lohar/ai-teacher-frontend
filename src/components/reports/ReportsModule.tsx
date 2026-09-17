@@ -228,7 +228,7 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
   }
 
   return (
-    <div className="h-full flex flex-col space-y-6 max-w-7xl mx-auto py-2">
+    <div className="space-y-6 max-w-7xl mx-auto py-2">
       {/* Header Banner */}
       {/* <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 sm:p-8 rounded-[2rem] shadow-xl relative overflow-hidden shrink-0">
         <div className="relative z-10 space-y-2">
@@ -265,7 +265,7 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
       </div> */}
 
       {/* Analytics Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
             <span className="text-xs font-semibold text-gray-500">Total Sessions</span>
@@ -312,7 +312,7 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
       </div>
 
       {/* Filter and Search Toolbar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm shrink-0">
+      <div className="sticky top-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-gray-200/80 shadow-sm">
         <div className="relative flex-1 w-full">
           <Search size={16} className="text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -362,7 +362,7 @@ export function ReportsModule({ onStartPractice, initialSessionId, onClearInitia
       </div>
 
       {/* Reports List / Grid */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="w-full">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />

@@ -175,7 +175,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.3 }}
-                className="py-4 h-full"
+                className="py-4 min-h-full"
               >
                 <ReportsModule 
                   onStartPractice={(t) => handleStartPractice(t, 'voice')} 
